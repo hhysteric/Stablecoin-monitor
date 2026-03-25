@@ -6,82 +6,106 @@
 <title>稳定币脱锚监控</title>
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
-body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f9f9f7; color: #1a1a18; padding: 1.5rem; }
-
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', sans-serif; background: #f9f9f7; color: #1a1a18; padding: 1.5rem; font-size: 14px; }
 .dashboard { max-width: 1100px; margin: 0 auto; }
-
 .header { margin-bottom: 1.5rem; }
 .header h1 { font-size: 20px; font-weight: 500; color: #1a1a18; margin-bottom: 4px; }
 .header p { font-size: 13px; color: #6b6b68; }
-
-.alert-banner { background: #FCEBEB; border: 0.5px solid #F7C1C1; border-radius: 8px; padding: 10px 14px; margin-bottom: 1rem; font-size: 13px; color: #A32D2D; display: none; }
-.alert-banner.visible { display: flex; align-items: center; gap: 8px; }
-
+.alert-banner { background: #FCEBEB; border: 0.5px solid #F7C1C1; border-radius: 8px; padding: 10px 14px; margin-bottom: 1rem; font-size: 13px; color: #A32D2D; display: none; align-items: center; gap: 8px; }
+.alert-banner.visible { display: flex; }
 .summary-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 1.5rem; }
 .summary-card { background: #f1efe8; border-radius: 8px; padding: 12px 14px; }
 .summary-label { font-size: 11px; color: #6b6b68; margin-bottom: 4px; }
 .summary-val { font-size: 20px; font-weight: 500; color: #1a1a18; }
-
-.section-header { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
-.section-title { font-size: 12px; font-weight: 500; color: #6b6b68; text-transform: uppercase; letter-spacing: 0.05em; flex: 1; padding-bottom: 6px; border-bottom: 0.5px solid rgba(0,0,0,0.1); }
-
-.threshold-info { font-size: 11px; color: #9b9b98; display: flex; gap: 12px; }
+.section-header { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; flex-wrap: wrap; }
+.section-title-text { font-size: 12px; font-weight: 500; color: #6b6b68; text-transform: uppercase; letter-spacing: 0.05em; flex: 1; }
+.threshold-info { font-size: 11px; color: #9b9b98; display: flex; gap: 12px; flex-wrap: wrap; }
 .t-item { display: flex; align-items: center; gap: 4px; }
-.t-dot { width: 6px; height: 6px; border-radius: 50%; }
-
-.refresh-btn { font-size: 12px; padding: 4px 12px; border: 0.5px solid rgba(0,0,0,0.2); border-radius: 6px; background: transparent; color: #6b6b68; cursor: pointer; transition: all 0.15s; }
-.refresh-btn:hover { background: #f1efe8; }
-.refresh-btn.loading { opacity: 0.5; pointer-events: none; }
-
+.t-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+.divider { border: none; border-top: 0.5px solid rgba(0,0,0,0.1); margin: 0 0 10px 0; }
+.btn { font-size: 12px; padding: 4px 12px; border: 0.5px solid rgba(0,0,0,0.2); border-radius: 6px; background: transparent; color: #6b6b68; cursor: pointer; transition: all 0.15s; white-space: nowrap; }
+.btn:hover { background: #f1efe8; }
+.btn.loading { opacity: 0.5; pointer-events: none; }
 .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; margin-bottom: 1.5rem; }
-
-.coin-card { background: #fff; border: 0.5px solid rgba(0,0,0,0.1); border-radius: 12px; padding: 14px; position: relative; transition: border-color 0.2s; cursor: pointer; }
-.coin-card:hover { border-color: rgba(0,0,0,0.2); }
-.coin-card.status-ok { border-left: 3px solid #1D9E75; }
-.coin-card.status-warn { border-left: 3px solid #EF9F27; }
-.coin-card.status-alert { border-left: 3px solid #E24B4A; }
-.coin-card.status-low { border-left: 3px solid #378ADD; opacity: 0.85; }
+.coin-card { background: #fff; border: 0.5px solid rgba(0,0,0,0.1); border-radius: 12px; padding: 14px; position: relative; transition: border-color 0.2s, box-shadow 0.2s; cursor: pointer; }
+.coin-card:hover { border-color: rgba(0,0,0,0.25); }
+.coin-card.selected { border-color: #1a1a18 !important; box-shadow: 0 0 0 1px #1a1a18; }
+.coin-card.status-ok      { border-left: 3px solid #1D9E75; }
+.coin-card.status-warn    { border-left: 3px solid #EF9F27; }
+.coin-card.status-alert   { border-left: 3px solid #E24B4A; }
+.coin-card.status-low     { border-left: 3px solid #378ADD; opacity: 0.85; }
 .coin-card.status-loading { border-left: 3px solid rgba(0,0,0,0.1); }
-
-.coin-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.coin-card.status-kgst-ok    { border-left: 3px solid #7F77DD; }
+.coin-card.status-kgst-warn  { border-left: 3px solid #EF9F27; }
+.coin-card.status-kgst-alert { border-left: 3px solid #E24B4A; }
+.coin-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
 .coin-symbol { font-size: 14px; font-weight: 500; color: #1a1a18; }
-.coin-status-dot { width: 8px; height: 8px; border-radius: 50%; }
-.dot-ok { background: #1D9E75; }
-.dot-warn { background: #EF9F27; }
-.dot-alert { background: #E24B4A; animation: pulse 1s infinite; }
+.coin-status-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.dot-ok, .dot-kgst-ok { background: #1D9E75; }
+.dot-kgst-ok { background: #7F77DD; }
+.dot-warn, .dot-kgst-warn { background: #EF9F27; }
+.dot-alert, .dot-kgst-alert { background: #E24B4A; animation: pulse 1s infinite; }
 .dot-low { background: #378ADD; }
 .dot-loading { background: rgba(0,0,0,0.15); }
-
 @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
-
-.coin-price { font-size: 22px; font-weight: 500; color: #1a1a18; margin-bottom: 3px; }
-.coin-price.ok { color: #1D9E75; }
-.coin-price.warn { color: #BA7517; }
-.coin-price.alert { color: #A32D2D; }
-
-.coin-deviation { font-size: 12px; margin-bottom: 8px; }
-.coin-deviation.ok { color: #3B6D11; }
-.coin-deviation.warn { color: #854F0B; }
-.coin-deviation.alert { color: #A32D2D; }
-
-.coin-meta { font-size: 11px; color: #9b9b98; line-height: 1.5; }
+.coin-peg-label { font-size: 10px; color: #b0b0ab; margin-bottom: 4px; }
+.coin-price { font-size: 22px; font-weight: 500; color: #1a1a18; margin-bottom: 2px; }
+.coin-price.ok, .coin-price.kgst-ok { color: #1D9E75; }
+.coin-price.warn, .coin-price.kgst-warn { color: #BA7517; }
+.coin-price.alert, .coin-price.kgst-alert { color: #A32D2D; }
+.coin-deviation { font-size: 12px; margin-bottom: 8px; font-weight: 500; }
+.coin-deviation.ok, .coin-deviation.kgst-ok { color: #3B6D11; }
+.coin-deviation.warn, .coin-deviation.kgst-warn { color: #854F0B; }
+.coin-deviation.alert, .coin-deviation.kgst-alert { color: #A32D2D; }
+.coin-meta { font-size: 11px; color: #9b9b98; line-height: 1.6; }
 .coin-vol { font-size: 11px; color: #6b6b68; }
-
 .peg-bar-wrap { margin: 8px 0; height: 4px; background: #f1efe8; border-radius: 2px; overflow: hidden; }
 .peg-bar { height: 100%; border-radius: 2px; transition: width 0.3s; }
 .peg-bar.ok { background: #1D9E75; }
 .peg-bar.warn { background: #EF9F27; }
 .peg-bar.alert { background: #E24B4A; }
-
+.peg-bar.kgst-ok { background: #7F77DD; }
+.peg-bar.kgst-warn { background: #EF9F27; }
+.peg-bar.kgst-alert { background: #E24B4A; }
 .skeleton { background: #f1efe8; border-radius: 4px; animation: shimmer 1.5s infinite; }
 @keyframes shimmer { 0%, 100% { opacity: 0.5; } 50% { opacity: 1; } }
-
+.reserve-btn { font-size: 11px; margin-top: 8px; padding: 4px 8px; border: 0.5px solid rgba(0,0,0,0.15); border-radius: 5px; background: transparent; color: #6b6b68; cursor: pointer; transition: all 0.15s; width: 100%; }
+.reserve-btn:hover { background: #f9f9f7; }
+.reserve-btn.active { background: #1a1a18; color: #fff; border-color: #1a1a18; }
+/* Reserve panel */
+.reserve-panel { background: #fff; border: 0.5px solid rgba(0,0,0,0.12); border-radius: 12px; padding: 1.25rem; margin-bottom: 1.5rem; display: none; }
+.reserve-panel.visible { display: block; }
+.rp-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; }
+.rp-title { font-size: 15px; font-weight: 500; }
+.rp-close { background: none; border: none; cursor: pointer; font-size: 18px; color: #9b9b98; padding: 0; line-height: 1; }
+.rp-close:hover { color: #1a1a18; }
+.rp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; }
+@media (max-width: 600px) { .rp-grid { grid-template-columns: 1fr; } }
+.rp-section-title { font-size: 11px; font-weight: 500; color: #9b9b98; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 8px; }
+.rp-row { display: flex; justify-content: space-between; align-items: flex-start; padding: 6px 0; border-bottom: 0.5px solid rgba(0,0,0,0.06); font-size: 12px; gap: 12px; }
+.rp-row:last-child { border-bottom: none; }
+.rp-key { color: #6b6b68; flex-shrink: 0; min-width: 72px; }
+.rp-val { color: #1a1a18; text-align: right; font-weight: 500; word-break: break-word; }
+.rp-val.neutral { color: #6b6b68; font-weight: 400; }
+.rp-tag { display: inline-block; font-size: 10px; padding: 2px 7px; border-radius: 20px; }
+.tag-green { background: #EAF3DE; color: #3B6D11; }
+.tag-amber { background: #FAEEDA; color: #854F0B; }
+.tag-red   { background: #FCEBEB; color: #A32D2D; }
+.tag-gray  { background: #f1efe8; color: #5F5E5A; }
+.tag-blue  { background: #E6F1FB; color: #185FA5; }
+.tag-purple{ background: #EEEDFE; color: #534AB7; }
+.rp-note { font-size: 11px; color: #6b6b68; line-height: 1.6; }
+.rp-link { font-size: 11px; color: #185FA5; text-decoration: none; display: block; margin-top: 4px; }
+.rp-link:hover { text-decoration: underline; }
+.kgs-bar { background: #EEEDFE; border-radius: 8px; padding: 8px 12px; margin-bottom: 12px; font-size: 12px; color: #534AB7; display: none; align-items: center; gap: 8px; }
+.kgs-bar.show { display: flex; }
 .update-time { font-size: 11px; color: #9b9b98; margin-top: 8px; text-align: right; }
-.error-msg { font-size: 12px; color: #6b6b68; text-align: center; padding: 20px; }
-
+.empty-section { font-size: 12px; color: #9b9b98; padding: 10px 0 16px; }
+.error-msg { font-size: 12px; color: #6b6b68; text-align: center; padding: 20px; grid-column: 1/-1; }
 @media (max-width: 500px) {
   .summary-row { grid-template-columns: repeat(2, 1fr); }
   .threshold-info { display: none; }
+  body { padding: 1rem; }
 }
 </style>
 </head>
@@ -89,161 +113,404 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 <div class="dashboard">
   <div class="header">
     <h1>稳定币脱锚监控</h1>
-    <p>实时监控稳定币价格，脱锚偏差超过阈值时自动预警 · 每60秒自动刷新</p>
+    <p>实时监控稳定币价格偏离其锚定目标的情况，支持美元锚定与法币锚定（KGS）两种模式 · 每60秒自动刷新 · 点击卡片查看储备详情</p>
   </div>
 
   <div id="alert-banner" class="alert-banner">
-    <span style="font-size:16px">⚠</span>
+    <span style="font-size:16px;flex-shrink:0">⚠</span>
     <span id="alert-text"></span>
   </div>
 
   <div class="summary-row">
-    <div class="summary-card">
-      <div class="summary-label">监控总数</div>
-      <div class="summary-val" id="total-count">—</div>
+    <div class="summary-card"><div class="summary-label">监控总数</div><div class="summary-val" id="total-count">—</div></div>
+    <div class="summary-card"><div class="summary-label">正常锚定</div><div class="summary-val" style="color:#1D9E75" id="ok-count">—</div></div>
+    <div class="summary-card"><div class="summary-label">轻微偏差</div><div class="summary-val" style="color:#BA7517" id="warn-count">—</div></div>
+    <div class="summary-card"><div class="summary-label">脱锚警报</div><div class="summary-val" style="color:#A32D2D" id="alert-count">—</div></div>
+  </div>
+
+  <!-- Reserve detail panel (injected here) -->
+  <div class="reserve-panel" id="reserve-panel">
+    <div class="rp-header">
+      <div class="rp-title" id="rp-title">储备资产详情</div>
+      <button class="rp-close" onclick="closeReserve()">✕</button>
     </div>
-    <div class="summary-card">
-      <div class="summary-label">正常锚定</div>
-      <div class="summary-val" style="color:#1D9E75" id="ok-count">—</div>
-    </div>
-    <div class="summary-card">
-      <div class="summary-label">轻微偏差</div>
-      <div class="summary-val" style="color:#BA7517" id="warn-count">—</div>
-    </div>
-    <div class="summary-card">
-      <div class="summary-label">脱锚警报</div>
-      <div class="summary-val" style="color:#A32D2D" id="alert-count">—</div>
-    </div>
+    <div id="rp-content"></div>
   </div>
 
   <div class="section-header">
-    <div class="section-title">主要监控稳定币</div>
+    <div class="section-title-text">美元锚定稳定币</div>
     <div class="threshold-info">
       <span class="t-item"><span class="t-dot" style="background:#1D9E75"></span>±0.3%内</span>
       <span class="t-item"><span class="t-dot" style="background:#EF9F27"></span>±0.3~1%</span>
       <span class="t-item"><span class="t-dot" style="background:#E24B4A"></span>&gt;±1%</span>
     </div>
-    <button class="refresh-btn" id="refresh-btn" onclick="fetchAll()">刷新</button>
+    <button class="btn" id="refresh-btn" onclick="fetchAll()">刷新</button>
   </div>
+  <hr class="divider">
   <div class="grid" id="main-grid"></div>
 
-  <div class="section-title" style="margin-bottom:10px;">低交易量稳定币（单日 &lt; $5,000）</div>
-  <div class="grid" id="low-grid"></div>
+  <div class="section-header">
+    <div class="section-title-text">KGS 锚定稳定币</div>
+    <div class="threshold-info">
+      <span class="t-item"><span class="t-dot" style="background:#7F77DD"></span>锚定吉尔吉斯斯坦索姆（KGS）</span>
+    </div>
+  </div>
+  <hr class="divider">
+  <div id="kgs-rate-bar" class="kgs-bar">
+    <span>💱</span><span id="kgs-rate-text">正在获取 KGS/USD 汇率...</span>
+  </div>
+  <div class="grid" id="kgs-grid"></div>
+
+  <div class="section-header">
+    <div class="section-title-text">低交易量稳定币（单日 &lt; $5,000）</div>
+  </div>
+  <hr class="divider">
+  <div id="low-section"><div class="empty-section">加载中...</div></div>
 
   <div class="update-time" id="update-time"></div>
 </div>
-
 <script>
 const COINS = [
-  { id: 'usdd', symbol: 'USDD', name: 'USDD' },
-  { id: 'united-stables', symbol: 'U', name: 'United Stables' },
-  { id: 'usd1-wlfi', symbol: 'USD1', name: 'USD1 (WLFI)' },
-  { id: 'ethena-usde', symbol: 'USDe', name: 'Ethena USDe' },
-  { id: 'first-digital-usd', symbol: 'FDUSD', name: 'First Digital USD' },
-  { id: 'just-stablecoin', symbol: 'USDJ', name: 'USDJ' },
-  { id: 'true-usd', symbol: 'TUSD', name: 'TrueUSD' },
-  { id: 'husd', symbol: 'HUSD', name: 'HUSD' },
-  { id: 'wrapped-staked-usdt', symbol: 'WSTUSDT', name: 'Wrapped Staked USDT' },
-  { id: 'stusdt-staked-usdt', symbol: 'stUSDT', name: 'stUSDT' },
-  { id: 'kyrgyz-som-stablecoin', symbol: 'KGST', name: 'Kyrgyz Som Stablecoin' },
+  { id: 'usdd',                  symbol: 'USDD',    name: 'USDD (TRON DAO)',       peg: 'usd' },
+  { id: 'united-stables',        symbol: 'U',       name: 'United Stables',         peg: 'usd' },
+  { id: 'usd1-wlfi',             symbol: 'USD1',    name: 'USD1 (WLFI)',            peg: 'usd' },
+  { id: 'ethena-usde',           symbol: 'USDe',    name: 'Ethena USDe',            peg: 'usd' },
+  { id: 'first-digital-usd',     symbol: 'FDUSD',   name: 'First Digital USD',      peg: 'usd' },
+  { id: 'just-stablecoin',       symbol: 'USDJ',    name: 'USDJ (JustStable)',      peg: 'usd' },
+  { id: 'true-usd',              symbol: 'TUSD',    name: 'TrueUSD',                peg: 'usd' },
+  { id: 'husd',                  symbol: 'HUSD',    name: 'HUSD',                   peg: 'usd' },
+  { id: 'wrapped-staked-usdt',   symbol: 'WSTUSDT', name: 'Wrapped Staked USDT',    peg: 'usd' },
+  { id: 'stusdt-staked-usdt',    symbol: 'stUSDT',  name: 'stUSDT (JustLend)',      peg: 'usd' },
+  { id: 'kyrgyz-som-stablecoin', symbol: 'KGST',    name: 'Kyrgyz Som Stablecoin',  peg: 'kgs' },
 ];
 
+const RESERVE_INFO = {
+  'usdd': {
+    mechanism: '超额抵押 CDP 模型',
+    collateral: 'TRX、sTRX、USDT',
+    ratio: '>120%（链上可查）',
+    audit: 'ChainSecurity（TRON/ETH/BNB）\nCertiK AA 级（87.5/100）',
+    attestation: '季度报告 + 链上实时',
+    attestTag: 'green',
+    risk: 'warn', riskLabel: '中等风险',
+    note: 'TRX 约占抵押品 40%，存在生态集中风险。曾为算法稳定币（2022 年 USDD 1.0 脱锚），2025 年 1 月升级为超额抵押的 USDD 2.0。智能合约已去除管理员权限，不可被中心化方冻结。',
+    dashboard: 'https://usdd.io/treasury',
+  },
+  'united-stables': {
+    mechanism: '法币抵押（美元储备）',
+    collateral: '美元及等价物',
+    ratio: '1:1',
+    audit: '公开信息有限',
+    attestation: '未知',
+    attestTag: 'gray',
+    risk: 'neutral', riskLabel: '信息有限',
+    note: '项目规模较小，公开储备透明度信息不足，建议关注官方渠道动态。',
+    dashboard: null,
+  },
+  'usd1-wlfi': {
+    mechanism: '法币抵押（国债 + 现金）',
+    collateral: '短期美国国债、美元现金及等价物',
+    ratio: '1:1',
+    audit: 'BitGo 机构托管，第三方审计进行中',
+    attestation: '月度报告（规划中）',
+    attestTag: 'amber',
+    risk: 'ok', riskLabel: '低风险',
+    note: '由 World Liberty Financial（WLFI，与特朗普家族关联）发行，BitGo 机构级托管。2025 年上线后快速增长中。政治关联性可能带来监管不确定性。',
+    dashboard: 'https://wlfi.com',
+  },
+  'ethena-usde': {
+    mechanism: '合成美元（Delta 中性对冲）',
+    collateral: 'BTC/ETH 现货多头 + 永续合约空头',
+    ratio: '>100%（另有储备基金缓冲）',
+    audit: 'Chaos Labs PoR 每周链上证明\nLlamaRisk / Harris & Trotter / Chainlink',
+    attestation: '每周第三方 PoR',
+    attestTag: 'green',
+    risk: 'ok', riskLabel: '低风险',
+    note: '合成模型依赖永续资金费率为正；资产通过 Off-Exchange Settlement 方案托管于链下（非交易所账户）。2025 年 2 月 Bybit 被黑时短暂脱锚至 $0.988，随后快速恢复。',
+    dashboard: 'https://app.ethena.fi/dashboards/transparency',
+  },
+  'first-digital-usd': {
+    mechanism: '法币抵押（美国国债）',
+    collateral: '美国国债（T-Bills）、隔夜定存',
+    ratio: '1:1（超额覆盖）',
+    audit: 'Prescient Assurance 月度认证\nPeckShield & Quantstamp 合约审计',
+    attestation: '月度独立认证',
+    attestTag: 'green',
+    risk: 'warn', riskLabel: '中等风险',
+    note: '2025 年 4 月 Justin Sun 指控托管方 FDT 资不抵债，FDUSD 一度跌至 $0.87。FDT 否认并提起诉讼，表示 FDUSD 储备由美国国债全额支撑，但与 TUSD 的储备纠纷仍在司法程序中。',
+    dashboard: 'https://www.firstdigitallabs.com/transparency',
+  },
+  'just-stablecoin': {
+    mechanism: '超额抵押 CDP（类 MakerDAO）',
+    collateral: 'TRX 及其他 TRON 生态资产',
+    ratio: '>150%（最低抵押率）',
+    audit: 'JustStable 合约审计（TRON）',
+    attestation: '链上实时',
+    attestTag: 'blue',
+    risk: 'warn', riskLabel: '中等风险',
+    note: '抵押品以 TRX 为主，面临 TRON 生态单一风险；流动性较低，在 TRX 大幅下跌时存在清算风险。',
+    dashboard: 'https://just.network',
+  },
+  'true-usd': {
+    mechanism: '法币抵押（美元储备）',
+    collateral: '美元、短期国债',
+    ratio: '1:1',
+    audit: 'The Network Firm 实时认证（历史）',
+    attestation: '存疑，认证中断',
+    attestTag: 'red',
+    risk: 'bad', riskLabel: '高风险',
+    note: '2025 年起深陷储备纠纷：迪拜法院冻结约 $4.56 亿相关资金，指控储备被挪用至流动性差的投资。Justin Sun 否认直接参与，但链上数据显示其地址与 TUSD 铸造/销毁相关。实时认证状态存疑。',
+    dashboard: 'https://real-time-attest.trustexplorer.io/trueusd',
+  },
+  'husd': {
+    mechanism: '法币抵押（美元储备）',
+    collateral: '美元（历史）',
+    ratio: '1:1（历史）',
+    audit: '无近期公开审计',
+    attestation: '无',
+    attestTag: 'red',
+    risk: 'bad', riskLabel: '高风险',
+    note: '已基本停止正常运营；2022 年曾严重脱锚；目前流动性极低，近乎无法使用。高风险，不建议持有。',
+    dashboard: null,
+  },
+  'wrapped-staked-usdt': {
+    mechanism: '包装质押 USDT（收益型）',
+    collateral: '质押 USDT（底层为 USDT 储备）',
+    ratio: '≥1:1（含质押收益）',
+    audit: '依赖 Tether 储备审计',
+    attestation: '依赖 Tether 季度报告',
+    attestTag: 'gray',
+    risk: 'ok', riskLabel: '低风险',
+    note: '价格通常略高于 $1.00（含质押收益积累），属正常现象。主要风险来自 USDT 本身及所在协议的智能合约安全性。',
+    dashboard: null,
+  },
+  'stusdt-staked-usdt': {
+    mechanism: '质押 USDT（JustLend 收益型）',
+    collateral: 'USDT（TRON 生态）',
+    ratio: '≥1:1（含质押收益）',
+    audit: 'TRON JustLend 合约审计',
+    attestation: '链上实时',
+    attestTag: 'blue',
+    risk: 'ok', riskLabel: '低风险',
+    note: '价格通常略大于 $1.00（含收益积累）；风险主要来自 TRON 生态和 USDT 本身。',
+    dashboard: 'https://justlend.org',
+  },
+  'kyrgyz-som-stablecoin': {
+    mechanism: '法币抵押（吉尔吉斯索姆）',
+    collateral: 'KGS（吉尔吉斯斯坦索姆）及等价物',
+    ratio: '1:1（对应 KGS）',
+    audit: '公开信息极少',
+    attestation: '未知',
+    attestTag: 'gray',
+    risk: 'neutral', riskLabel: '信息有限',
+    note: '锚定目标为吉尔吉斯斯坦索姆（KGS）而非美元。KGS 相对稳定（约 87 KGS/USD），法币汇率波动较小。因此监控脱锚需使用 KGS/USD 实时汇率作为参考价格，而非固定 $1.0。',
+    dashboard: null,
+  },
+};
+
 const LOW_VOL_THRESHOLD = 5000;
-const WARN_THRESHOLD = 0.003;
-const ALERT_THRESHOLD = 0.01;
+const WARN_THRESHOLD    = 0.003;
+const ALERT_THRESHOLD   = 0.01;
 
-let coinData = {};
+let coinData   = {};
+let kgsPerUsd  = null;
+let selectedId = null;
 
-function getStatus(price, vol) {
+function getStatus(coin, price, vol) {
   if (price === null) return 'loading';
+  if (coin.peg === 'kgs') {
+    if (kgsPerUsd === null) return 'loading';
+    const pegUsd = 1 / kgsPerUsd;
+    const dev = Math.abs(price - pegUsd) / pegUsd;
+    if (dev > ALERT_THRESHOLD) return 'kgst-alert';
+    if (dev > WARN_THRESHOLD)  return 'kgst-warn';
+    return 'kgst-ok';
+  }
   if (vol !== null && vol < LOW_VOL_THRESHOLD) return 'low';
   const dev = Math.abs(price - 1);
   if (dev > ALERT_THRESHOLD) return 'alert';
-  if (dev > WARN_THRESHOLD) return 'warn';
+  if (dev > WARN_THRESHOLD)  return 'warn';
   return 'ok';
 }
 
-function fmt(n) {
-  if (n === null || n === undefined) return '—';
-  return n.toFixed(4);
+function devClass(s) {
+  if (s === 'loading') return '';
+  if (s === 'low') return 'ok';
+  return s;
 }
 
-function fmtVol(n) {
-  if (n === null || n === undefined) return '—';
+function fmt4(n)    { return n === null ? '—' : n.toFixed(4); }
+function fmtVol(n)  {
+  if (!n && n !== 0) return '—';
   if (n >= 1e9) return '$' + (n/1e9).toFixed(2) + 'B';
   if (n >= 1e6) return '$' + (n/1e6).toFixed(2) + 'M';
   if (n >= 1e3) return '$' + (n/1e3).toFixed(2) + 'K';
   return '$' + n.toFixed(2);
 }
 
-function fmtDev(price) {
+function fmtDev(coin, price) {
   if (price === null) return '';
-  const dev = ((price - 1) * 100);
-  return (dev >= 0 ? '+' : '') + dev.toFixed(3) + '%';
+  if (coin.peg === 'kgs' && kgsPerUsd) {
+    const pegUsd = 1 / kgsPerUsd;
+    const pct = (price - pegUsd) / pegUsd * 100;
+    return (pct >= 0 ? '+' : '') + pct.toFixed(3) + '%（vs KGS 锚定）';
+  }
+  const pct = (price - 1) * 100;
+  return (pct >= 0 ? '+' : '') + pct.toFixed(3) + '%';
 }
 
-function pegBarPct(price) {
+function pegBarPct(coin, price) {
   if (price === null) return 50;
-  const dev = Math.abs(price - 1);
+  let dev;
+  if (coin.peg === 'kgs' && kgsPerUsd) {
+    const pegUsd = 1 / kgsPerUsd;
+    dev = Math.abs(price - pegUsd) / pegUsd;
+  } else {
+    dev = Math.abs(price - 1);
+  }
   return Math.max(0, Math.min(100, 100 - dev * 5000));
 }
 
 function renderCard(coin, container) {
-  const d = coinData[coin.id];
-  const price = d ? d.price : null;
-  const vol = d ? d.vol : null;
-  const mc = d ? d.mc : null;
-  const status = getStatus(price, vol);
-  const devClass = status === 'loading' ? '' : status === 'low' ? 'ok' : status;
-  const priceClass = status === 'loading' ? '' : status === 'low' ? 'ok' : status;
+  const d      = coinData[coin.id] || {};
+  const price  = d.price != null ? d.price : null;
+  const vol    = d.vol   != null ? d.vol   : null;
+  const mc     = d.mc    != null ? d.mc    : null;
+  const status = getStatus(coin, price, vol);
+  const dc     = devClass(status);
+  const isSelected = selectedId === coin.id;
+  const ri     = RESERVE_INFO[coin.id];
 
   let card = document.getElementById('card-' + coin.id);
   if (!card) {
     card = document.createElement('div');
     card.id = 'card-' + coin.id;
-    card.className = 'coin-card';
-    card.onclick = () => window.open('https://www.coingecko.com/en/coins/' + coin.id, '_blank');
     container.appendChild(card);
   }
 
-  card.className = 'coin-card status-' + status;
+  card.className = 'coin-card status-' + status + (isSelected ? ' selected' : '');
+
+  const pegLabel = coin.peg === 'kgs'
+    ? (kgsPerUsd ? `锚定 KGS（1 KGS ≈ $${(1/kgsPerUsd).toFixed(5)}）` : '锚定 KGS（汇率加载中）')
+    : '锚定 $1.0000 USD';
+
+  const priceHtml = price === null
+    ? `<div class="skeleton" style="height:28px;width:80px;margin-bottom:5px"></div>`
+    : `<div class="coin-price ${dc}">$${fmt4(price)}</div>`;
+
+  const devHtml = price === null
+    ? `<div class="skeleton" style="height:13px;width:90px;margin-bottom:8px"></div>`
+    : `<div class="coin-deviation ${dc}">${fmtDev(coin, price)}</div>`;
+
   card.innerHTML = `
     <div class="coin-header">
       <div class="coin-symbol">${coin.symbol}</div>
       <div class="coin-status-dot dot-${status}"></div>
     </div>
-    ${price === null
-      ? `<div class="skeleton" style="height:28px;width:80px;margin-bottom:6px"></div>`
-      : `<div class="coin-price ${priceClass}">$${fmt(price)}</div>`}
-    ${price === null
-      ? `<div class="skeleton" style="height:14px;width:60px;margin-bottom:8px"></div>`
-      : `<div class="coin-deviation ${devClass}">${fmtDev(price)}</div>`}
-    <div class="peg-bar-wrap"><div class="peg-bar ${devClass}" style="width:${price===null?50:pegBarPct(price)}%"></div></div>
+    <div class="coin-peg-label">${pegLabel}</div>
+    ${priceHtml}${devHtml}
+    <div class="peg-bar-wrap"><div class="peg-bar ${dc}" style="width:${price===null?50:pegBarPct(coin,price)}%"></div></div>
     <div class="coin-meta">
       <div class="coin-vol">成交量 ${fmtVol(vol)}</div>
       ${mc ? `<div>市值 ${fmtVol(mc)}</div>` : ''}
-      <div style="margin-top:4px;font-size:10px;color:#9b9b98">${coin.name}</div>
+      <div style="margin-top:3px;font-size:10px;color:#b0b0ab">${coin.name}</div>
     </div>
+    ${ri ? `<button class="reserve-btn${isSelected?' active':''}" onclick="event.stopPropagation();toggleReserve('${coin.id}')">${isSelected?'▲ 收起':'📋 储备详情'}</button>` : ''}
   `;
+
+  card.onclick = () => {
+    if (ri) toggleReserve(coin.id);
+    else window.open('https://www.coingecko.com/en/coins/' + coin.id, '_blank');
+  };
 }
 
-function distribute() {
-  const mainGrid = document.getElementById('main-grid');
-  const lowGrid = document.getElementById('low-grid');
-  mainGrid.innerHTML = '';
-  lowGrid.innerHTML = '';
+function toggleReserve(id) {
+  if (selectedId === id) { closeReserve(); return; }
+  selectedId = id;
+  distribute(false);
+  showReserve(id);
+}
+
+function closeReserve() {
+  selectedId = null;
+  document.getElementById('reserve-panel').className = 'reserve-panel';
+  distribute(false);
+}
+
+function showReserve(id) {
+  const coin = COINS.find(c => c.id === id);
+  const ri   = RESERVE_INFO[id];
+  if (!coin || !ri) return;
+  const d     = coinData[id] || {};
+  const price = d.price != null ? d.price : null;
+  const vol   = d.vol   != null ? d.vol   : null;
+  const mc    = d.mc    != null ? d.mc    : null;
+
+  const riskTagClass = { ok:'tag-green', warn:'tag-amber', bad:'tag-red', neutral:'tag-gray' }[ri.risk] || 'tag-gray';
+  const attTagClass  = { green:'tag-green', amber:'tag-amber', red:'tag-red', blue:'tag-blue', gray:'tag-gray' }[ri.attestTag] || 'tag-gray';
+
+  let mktRows = `
+    <div class="rp-row"><span class="rp-key">当前价格</span><span class="rp-val">${price ? '$'+fmt4(price) : '—'}</span></div>
+    <div class="rp-row"><span class="rp-key">24h 成交量</span><span class="rp-val">${fmtVol(vol)}</span></div>
+    <div class="rp-row"><span class="rp-key">市值</span><span class="rp-val">${fmtVol(mc)}</span></div>
+  `;
+  if (coin.peg === 'kgs' && kgsPerUsd) {
+    const pegUsd = 1 / kgsPerUsd;
+    mktRows += `<div class="rp-row"><span class="rp-key">KGS 锚定价</span><span class="rp-val">$${pegUsd.toFixed(5)}<br><small style="font-weight:400;color:#9b9b98">1 KGS = ${(1/kgsPerUsd).toFixed(5)} USD</small></span></div>`;
+  }
+
+  const dashLink = ri.dashboard
+    ? `<a class="rp-link" href="${ri.dashboard}" target="_blank" rel="noopener">🔗 官方透明度页面 ↗</a>`
+    : `<span style="font-size:11px;color:#9b9b98">无公开透明度页面</span>`;
+
+  document.getElementById('rp-title').textContent = `${coin.symbol} — 储备资产详情`;
+  document.getElementById('rp-content').innerHTML = `
+    <div class="rp-grid">
+      <div>
+        <div class="rp-section-title">储备机制</div>
+        <div class="rp-row"><span class="rp-key">稳定机制</span><span class="rp-val">${ri.mechanism}</span></div>
+        <div class="rp-row"><span class="rp-key">抵押品</span><span class="rp-val">${ri.collateral}</span></div>
+        <div class="rp-row"><span class="rp-key">抵押率</span><span class="rp-val">${ri.ratio}</span></div>
+        <div class="rp-row"><span class="rp-key">审计方</span><span class="rp-val neutral" style="white-space:pre-line">${ri.audit}</span></div>
+        <div class="rp-row"><span class="rp-key">认证频率</span><span class="rp-val"><span class="rp-tag ${attTagClass}">${ri.attestation}</span></span></div>
+        <div class="rp-row"><span class="rp-key">风险评级</span><span class="rp-val"><span class="rp-tag ${riskTagClass}">${ri.riskLabel}</span></span></div>
+        <div style="margin-top:10px;">${dashLink}<a class="rp-link" href="https://www.coingecko.com/en/coins/${id}" target="_blank" rel="noopener">📊 CoinGecko 行情 ↗</a></div>
+      </div>
+      <div>
+        <div class="rp-section-title">市场数据</div>
+        ${mktRows}
+        <div class="rp-section-title" style="margin-top:14px;">风险提示</div>
+        <p class="rp-note">${ri.note}</p>
+      </div>
+    </div>
+  `;
+
+  document.getElementById('reserve-panel').className = 'reserve-panel visible';
+  setTimeout(() => {
+    document.getElementById('reserve-panel').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }, 60);
+}
+
+function distribute(rebuild) {
+  const mainGrid  = document.getElementById('main-grid');
+  const kgsGrid   = document.getElementById('kgs-grid');
+  const lowSec    = document.getElementById('low-section');
+
+  if (rebuild) { mainGrid.innerHTML = ''; kgsGrid.innerHTML = ''; }
 
   let ok=0, warn=0, alert=0;
-  const alerts = [];
+  const alerts = [], lowCoins = [];
 
   COINS.forEach(coin => {
-    const d = coinData[coin.id];
-    const price = d ? d.price : null;
-    const vol = d ? d.vol : null;
-    const status = getStatus(price, vol);
-    const container = (status === 'low') ? lowGrid : mainGrid;
-    renderCard(coin, container);
+    const d      = coinData[coin.id] || {};
+    const price  = d.price != null ? d.price : null;
+    const vol    = d.vol   != null ? d.vol   : null;
+    const status = getStatus(coin, price, vol);
 
+    if (coin.peg === 'kgs') { renderCard(coin, kgsGrid); return; }
+    if (status === 'low') { lowCoins.push(coin); return; }
+
+    renderCard(coin, mainGrid);
     if (price !== null) {
       if (status === 'ok') ok++;
       else if (status === 'warn') warn++;
@@ -251,9 +518,19 @@ function distribute() {
     }
   });
 
+  if (rebuild) {
+    if (lowCoins.length === 0) {
+      lowSec.innerHTML = '<div class="empty-section">暂无低交易量稳定币（当前所有稳定币成交量均高于 $5,000）</div>';
+    } else {
+      lowSec.innerHTML = '';
+      const g = document.createElement('div'); g.className = 'grid'; lowSec.appendChild(g);
+      lowCoins.forEach(c => renderCard(c, g));
+    }
+  }
+
   document.getElementById('total-count').textContent = COINS.length;
-  document.getElementById('ok-count').textContent = ok || '—';
-  document.getElementById('warn-count').textContent = warn || '—';
+  document.getElementById('ok-count').textContent    = ok    || '—';
+  document.getElementById('warn-count').textContent  = warn  || '—';
   document.getElementById('alert-count').textContent = alert || '—';
 
   const banner = document.getElementById('alert-banner');
@@ -265,38 +542,52 @@ function distribute() {
   }
 }
 
+async function fetchKgsRate() {
+  try {
+    const r = await fetch('https://open.er-api.com/v6/latest/USD');
+    if (!r.ok) throw new Error('rate api err');
+    const data = await r.json();
+    if (data.rates && data.rates.KGS) {
+      kgsPerUsd = data.rates.KGS;
+      const bar = document.getElementById('kgs-rate-bar');
+      bar.className = 'kgs-bar show';
+      document.getElementById('kgs-rate-text').textContent =
+        `当前 KGS/USD：1 USD ≈ ${kgsPerUsd.toFixed(4)} KGS  |  1 KGS ≈ $${(1/kgsPerUsd).toFixed(6)} USD  （来源：ExchangeRate-API，每日更新）`;
+      return;
+    }
+  } catch(e) {}
+  kgsPerUsd = 87.45;
+  const bar = document.getElementById('kgs-rate-bar');
+  bar.className = 'kgs-bar show';
+  document.getElementById('kgs-rate-text').textContent =
+    `KGS/USD 参考汇率（离线备用）：1 USD ≈ ${kgsPerUsd.toFixed(2)} KGS  |  1 KGS ≈ $${(1/kgsPerUsd).toFixed(6)} USD`;
+}
+
 async function fetchAll() {
   const btn = document.getElementById('refresh-btn');
-  btn.textContent = '加载中...';
-  btn.classList.add('loading');
+  btn.textContent = '加载中...'; btn.classList.add('loading');
 
   const ids = COINS.map(c => c.id).join(',');
   const url = `https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=${ids}&order=market_cap_desc&per_page=50&page=1&sparkline=false`;
 
   try {
-    const resp = await fetch(url);
-    if (!resp.ok) throw new Error('API error ' + resp.status);
-    const data = await resp.json();
-
-    data.forEach(item => {
-      coinData[item.id] = { price: item.current_price, vol: item.total_volume, mc: item.market_cap };
-    });
-
-    COINS.forEach(coin => {
-      if (!coinData[coin.id]) coinData[coin.id] = { price: null, vol: null, mc: null };
-    });
-
-    distribute();
+    const [, priceResp] = await Promise.all([fetchKgsRate(), fetch(url)]);
+    if (!priceResp.ok) throw new Error('CoinGecko ' + priceResp.status);
+    const data = await priceResp.json();
+    data.forEach(item => { coinData[item.id] = { price: item.current_price, vol: item.total_volume, mc: item.market_cap }; });
+    COINS.forEach(c => { if (!coinData[c.id]) coinData[c.id] = { price: null, vol: null, mc: null }; });
+    distribute(true);
+    if (selectedId) showReserve(selectedId);
     document.getElementById('update-time').textContent = '上次更新：' + new Date().toLocaleTimeString('zh-CN');
   } catch(e) {
-    document.getElementById('main-grid').innerHTML += `<div class="error-msg">数据加载失败（${e.message}）。CoinGecko 免费 API 有频率限制，请稍后重试。</div>`;
+    document.getElementById('main-grid').innerHTML =
+      `<div class="error-msg">数据加载失败（${e.message}）。CoinGecko 免费 API 有频率限制，请稍后重试。</div>`;
   }
 
-  btn.textContent = '刷新';
-  btn.classList.remove('loading');
+  btn.textContent = '刷新'; btn.classList.remove('loading');
 }
 
-distribute();
+distribute(true);
 fetchAll();
 setInterval(fetchAll, 60000);
 </script>
