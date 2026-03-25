@@ -1,67 +1,788 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-CN">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Stablecoin Monitor</title>
-    <style>
-        body { font-family: Arial, sans-serif; }
-        table { width: 100%; border-collapse: collapse; margin: 20px 0; }
-        th, td { border: 1px solid #ddd; padding: 8px; }
-        th { background-color: #f2f2f2; }
-        .alert { color: red; font-weight: bold; }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>稳定币全资产监控系统</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;600&family=IBM+Plex+Sans+SC:wght@300;400;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:       #03080f;
+  --bg1:      #060e1a;
+  --bg2:      #091525;
+  --panel:    #0a1a2e;
+  --border:   #102640;
+  --border2:  #1a3a5c;
+  --accent:   #00c8ff;
+  --accent2:  #0088bb;
+  --green:    #00e5a0;
+  --green2:   #00b87a;
+  --yellow:   #ffc940;
+  --orange:   #ff8c00;
+  --red:      #ff3d5a;
+  --muted:    #3a6080;
+  --text:     #b0cfe0;
+  --text2:    #7aa0b8;
+  --white:    #e8f4ff;
+  --mono:     'IBM Plex Mono', monospace;
+  --sans:     'IBM Plex Sans SC', sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:100vh;}
+body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse 80% 50% at 10% 20%,rgba(0,120,200,.06) 0%,transparent 60%),radial-gradient(ellipse 60% 40% at 90% 80%,rgba(0,200,160,.04) 0%,transparent 60%);pointer-events:none;z-index:0;}
+body::after{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(0,144,200,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(0,144,200,.025) 1px,transparent 1px);background-size:60px 60px;pointer-events:none;z-index:0;}
+.scanline{position:fixed;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,200,255,.012) 3px,rgba(0,200,255,.012) 4px);pointer-events:none;z-index:9999;}
+.app{position:relative;z-index:1;max-width:1600px;margin:0 auto;padding:0 20px 60px;}
+
+/* HEADER */
+header{padding:22px 0 18px;border-bottom:1px solid var(--border);margin-bottom:24px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:14px;}
+.brand{display:flex;align-items:center;gap:14px;}
+.brand-hex{position:relative;width:46px;height:46px;display:flex;align-items:center;justify-content:center;}
+.brand-hex svg{position:absolute;}
+.brand-hex span{font-size:16px;font-family:var(--mono);font-weight:600;color:var(--accent);position:relative;z-index:1;}
+.brand-text h1{font-size:17px;font-weight:700;letter-spacing:.06em;color:var(--white);}
+.brand-text p{font-size:10px;font-family:var(--mono);color:var(--muted);letter-spacing:.15em;text-transform:uppercase;margin-top:3px;}
+.header-right{display:flex;align-items:center;gap:14px;flex-wrap:wrap;}
+.status-pill{display:flex;align-items:center;gap:8px;background:var(--bg2);border:1px solid var(--border);border-radius:20px;padding:5px 12px;font-family:var(--mono);font-size:10px;letter-spacing:.1em;color:var(--text2);}
+.pulse{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 6px var(--green);animation:blink 2.4s ease-in-out infinite;}
+.pulse.warn{background:var(--yellow);box-shadow:0 0 6px var(--yellow);}
+.pulse.err{background:var(--red);box-shadow:0 0 6px var(--red);animation:none;}
+.pulse.load{background:var(--accent);box-shadow:0 0 6px var(--accent);}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+.icon-btn{background:transparent;border:1px solid var(--border);color:var(--text2);font-family:var(--mono);font-size:11px;padding:5px 12px;border-radius:4px;cursor:pointer;letter-spacing:.08em;transition:all .2s;white-space:nowrap;}
+.icon-btn:hover{border-color:var(--accent);color:var(--accent);box-shadow:0 0 8px rgba(0,200,255,.2);}
+.icon-btn:disabled{opacity:.4;cursor:not-allowed;}
+.icon-btn.active{border-color:var(--green);color:var(--green);}
+
+/* TABS */
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--border);margin-bottom:24px;}
+.tab{background:transparent;border:none;border-bottom:2px solid transparent;color:var(--muted);font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;padding:10px 18px;cursor:pointer;transition:all .2s;margin-bottom:-1px;}
+.tab:hover{color:var(--text);}
+.tab.active{color:var(--accent);border-bottom-color:var(--accent);}
+
+/* ALERT STRIP */
+.alert-strip{display:none;background:linear-gradient(90deg,rgba(255,61,90,.1),rgba(255,61,90,.05));border:1px solid rgba(255,61,90,.35);border-radius:8px;padding:12px 18px;margin-bottom:20px;gap:14px;align-items:flex-start;animation:pulse-red 2s ease-in-out infinite;}
+.alert-strip.on{display:flex;}
+@keyframes pulse-red{0%,100%{border-color:rgba(255,61,90,.35)}50%{border-color:rgba(255,61,90,.75)}}
+.alert-strip-icon{font-size:20px;flex-shrink:0;}
+.alert-strip-body{flex:1;}
+.alert-strip-title{font-size:12px;font-weight:700;color:var(--red);letter-spacing:.05em;margin-bottom:5px;}
+.alert-items{list-style:none;}
+.alert-items li{font-size:11px;font-family:var(--mono);color:#ff9aaa;padding:2px 0;border-bottom:1px solid rgba(255,61,90,.1);}
+.alert-items li:last-child{border:none;}
+
+/* SUMMARY */
+.summary-row{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;margin-bottom:24px;}
+.scard{background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:12px 16px;position:relative;overflow:hidden;}
+.scard::after{content:'';position:absolute;bottom:0;left:0;right:0;height:2px;}
+.scard.c-ok::after{background:var(--green);}
+.scard.c-warn::after{background:var(--yellow);}
+.scard.c-alert::after{background:var(--red);}
+.scard.c-blue::after{background:var(--accent);}
+.scard-label{font-size:9px;font-family:var(--mono);color:var(--muted);letter-spacing:.15em;text-transform:uppercase;margin-bottom:6px;}
+.scard-val{font-size:24px;font-family:var(--mono);font-weight:600;color:var(--white);line-height:1;}
+.scard-val.ok{color:var(--green);}
+.scard-val.warn{color:var(--yellow);}
+.scard-val.alert{color:var(--red);}
+.scard-sub{font-size:10px;font-family:var(--mono);color:var(--muted);margin-top:4px;}
+
+/* CONTROLS */
+.controls-bar{display:flex;align-items:center;gap:16px;margin-bottom:20px;flex-wrap:wrap;}
+.ctrl-group{display:flex;align-items:center;gap:8px;}
+.ctrl-label{font-size:10px;font-family:var(--mono);color:var(--muted);letter-spacing:.1em;}
+.ctrl-input{background:var(--panel);border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:12px;padding:4px 8px;border-radius:4px;width:72px;text-align:center;transition:border-color .2s;}
+.ctrl-input:focus{outline:none;border-color:var(--accent);}
+.last-upd{font-size:10px;font-family:var(--mono);color:var(--muted);margin-left:auto;}
+
+/* SECTION TITLE */
+.section-title{font-size:10px;font-family:var(--mono);color:var(--muted);letter-spacing:.18em;text-transform:uppercase;margin-bottom:12px;display:flex;align-items:center;gap:10px;}
+.section-title::after{content:'';flex:1;height:1px;background:var(--border);}
+
+/* COLLATERAL GRID */
+.coll-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px;margin-bottom:28px;}
+.coll-card{background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:14px;transition:all .25s;}
+.coll-card:hover{border-color:var(--border2);transform:translateY(-1px);}
+.coll-card.c-risk-high{border-color:rgba(255,61,90,.3);}
+.coll-card.c-risk-med{border-color:rgba(255,201,64,.25);}
+.coll-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+.coll-name-row{display:flex;align-items:center;gap:8px;}
+.coll-icon{width:28px;height:28px;border-radius:50%;background:var(--bg2);border:1px solid var(--border2);display:flex;align-items:center;justify-content:center;font-size:12px;font-family:var(--mono);font-weight:600;color:var(--accent);flex-shrink:0;overflow:hidden;}
+.coll-icon img{width:100%;height:100%;object-fit:cover;border-radius:50%;}
+.coll-sym{font-size:13px;font-weight:700;color:var(--white);}
+.coll-type-tag{font-size:9px;font-family:var(--mono);letter-spacing:.08em;padding:2px 6px;border-radius:3px;background:rgba(0,144,200,.1);color:var(--accent2);border:1px solid rgba(0,144,200,.2);}
+.coll-price{font-size:18px;font-family:var(--mono);font-weight:600;color:var(--white);margin-bottom:4px;}
+.coll-change{font-size:11px;font-family:var(--mono);padding:2px 7px;border-radius:3px;display:inline-block;}
+.coll-change.pos{color:var(--green);background:rgba(0,229,160,.08);}
+.coll-change.neg{color:var(--red);background:rgba(255,61,90,.08);}
+.coll-change.neu{color:var(--muted);background:rgba(58,96,128,.12);}
+.coll-risk-bar{margin-top:10px;}
+.coll-risk-label{display:flex;justify-content:space-between;font-size:9px;font-family:var(--mono);color:var(--muted);letter-spacing:.1em;margin-bottom:4px;}
+.risk-track{height:3px;background:rgba(255,255,255,.06);border-radius:2px;overflow:hidden;}
+.risk-fill{height:100%;border-radius:2px;transition:width .8s ease,background .3s;}
+.coll-users{margin-top:10px;display:flex;flex-wrap:wrap;gap:4px;}
+.coll-user-tag{font-size:9px;font-family:var(--mono);letter-spacing:.06em;padding:2px 6px;border-radius:3px;background:rgba(176,207,224,.06);color:var(--text2);border:1px solid rgba(176,207,224,.1);}
+
+/* SC CARDS */
+.sc-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:14px;}
+.sc-card{background:var(--panel);border:1px solid var(--border);border-radius:10px;overflow:hidden;transition:all .3s;position:relative;}
+.sc-card:hover{border-color:var(--border2);transform:translateY(-2px);box-shadow:0 10px 40px rgba(0,0,0,.3);}
+.sc-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;}
+.sc-card.s-ok::before{background:var(--green);}
+.sc-card.s-warn::before{background:var(--yellow);}
+.sc-card.s-alert::before{background:var(--red);}
+.sc-card.s-unk::before{background:var(--muted);}
+.sc-card.s-alert{animation:card-danger 3s ease-in-out infinite;}
+@keyframes card-danger{0%,100%{box-shadow:0 0 0 rgba(255,61,90,0)}50%{box-shadow:0 0 24px rgba(255,61,90,.15)}}
+.sc-top{padding:18px 18px 14px 20px;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;justify-content:space-between;gap:12px;}
+.sc-coin-row{display:flex;align-items:center;gap:12px;}
+.sc-icon{width:40px;height:40px;border-radius:50%;background:var(--bg2);border:1px solid var(--border2);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;font-family:var(--mono);color:var(--accent);flex-shrink:0;overflow:hidden;}
+.sc-icon img{width:100%;height:100%;object-fit:cover;border-radius:50%;}
+.sc-sym{font-size:17px;font-weight:700;color:var(--white);letter-spacing:.04em;}
+.sc-chain{font-size:10px;font-family:var(--mono);color:var(--muted);margin-top:2px;}
+.badge{display:flex;align-items:center;gap:5px;font-family:var(--mono);font-size:10px;letter-spacing:.08em;padding:3px 10px;border-radius:14px;border:1px solid;white-space:nowrap;}
+.badge.ok{color:var(--green);border-color:rgba(0,229,160,.3);background:rgba(0,229,160,.06);}
+.badge.warn{color:var(--yellow);border-color:rgba(255,201,64,.3);background:rgba(255,201,64,.06);}
+.badge.alert{color:var(--red);border-color:rgba(255,61,90,.4);background:rgba(255,61,90,.08);}
+.badge.unk{color:var(--muted);border-color:rgba(58,96,128,.3);background:transparent;}
+.badge-dot{width:5px;height:5px;border-radius:50%;background:currentColor;}
+.sc-body{padding:14px 18px 14px 20px;}
+.price-row{display:flex;align-items:baseline;gap:10px;margin-bottom:10px;}
+.price-big{font-size:30px;font-family:var(--mono);font-weight:600;color:var(--white);line-height:1;}
+.price-big.ok{color:var(--green);}
+.price-big.warn{color:var(--yellow);}
+.price-big.alert{color:var(--red);}
+.price-chg{font-size:12px;font-family:var(--mono);padding:2px 8px;border-radius:4px;}
+.price-chg.pos{color:var(--green);background:rgba(0,229,160,.1);}
+.price-chg.neg{color:var(--red);background:rgba(255,61,90,.1);}
+.price-chg.neu{color:var(--muted);background:rgba(58,96,128,.12);}
+.dev-row{margin-bottom:14px;}
+.dev-labels{display:flex;justify-content:space-between;font-size:9px;font-family:var(--mono);color:var(--muted);letter-spacing:.12em;text-transform:uppercase;margin-bottom:5px;}
+.dev-labels span:last-child{font-size:11px;font-weight:600;}
+.dev-labels span.ok{color:var(--green);}
+.dev-labels span.warn{color:var(--yellow);}
+.dev-labels span.alert{color:var(--red);}
+.dev-labels span.unk{color:var(--muted);}
+.dev-track{height:5px;background:rgba(255,255,255,.05);border-radius:3px;position:relative;overflow:hidden;}
+.dev-track::before{content:'';position:absolute;left:50%;top:0;width:1px;height:100%;background:rgba(255,255,255,.2);z-index:1;}
+.dev-bar{position:absolute;top:0;height:100%;border-radius:3px;transition:left .8s ease,width .8s ease,background .3s;}
+.coll-exposure{border-top:1px solid var(--border);padding-top:14px;margin-top:2px;}
+.exp-title{font-size:9px;font-family:var(--mono);color:var(--muted);letter-spacing:.15em;text-transform:uppercase;margin-bottom:10px;}
+.exp-items{display:flex;flex-direction:column;gap:7px;}
+.exp-item{display:grid;grid-template-columns:90px 1fr auto auto;align-items:center;gap:8px;}
+.exp-asset-name{display:flex;align-items:center;gap:6px;}
+.exp-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;}
+.exp-sym-text{font-size:11px;font-family:var(--mono);color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.exp-bar-wrap{height:4px;background:rgba(255,255,255,.05);border-radius:2px;overflow:hidden;}
+.exp-bar-fill{height:100%;border-radius:2px;transition:width .8s ease;}
+.exp-pct{font-size:10px;font-family:var(--mono);color:var(--muted);white-space:nowrap;}
+.exp-chg{font-size:10px;font-family:var(--mono);white-space:nowrap;}
+.exp-chg.pos{color:var(--green);}
+.exp-chg.neg{color:var(--red);}
+.exp-chg.neu{color:var(--muted);}
+.risk-summary{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap;}
+.risk-tag{font-size:9px;font-family:var(--mono);letter-spacing:.06em;padding:3px 8px;border-radius:3px;border:1px solid;}
+.risk-tag.low{color:var(--green2);border-color:rgba(0,229,160,.25);background:rgba(0,229,160,.06);}
+.risk-tag.med{color:var(--yellow);border-color:rgba(255,201,64,.25);background:rgba(255,201,64,.06);}
+.risk-tag.high{color:var(--red);border-color:rgba(255,61,90,.3);background:rgba(255,61,90,.08);}
+.risk-tag.info{color:var(--accent2);border-color:rgba(0,144,200,.25);background:rgba(0,144,200,.06);}
+.sc-meta{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding-top:12px;border-top:1px solid var(--border);margin-top:12px;}
+.meta-k{font-size:9px;font-family:var(--mono);color:var(--muted);letter-spacing:.12em;text-transform:uppercase;margin-bottom:3px;}
+.meta-v{font-size:11px;font-family:var(--mono);color:var(--text);}
+
+/* Skeleton */
+.skel{background:linear-gradient(90deg,var(--border) 25%,rgba(15,37,64,.8) 50%,var(--border) 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;border-radius:4px;}
+@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+
+/* Collateral detail tab */
+.coll-detail-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px;}
+.coll-det-card{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:18px;}
+.coll-det-card.risk-high{border-color:rgba(255,61,90,.3);}
+.coll-det-card.risk-med{border-color:rgba(255,201,64,.25);}
+
+@media(max-width:640px){
+  .sc-grid{grid-template-columns:1fr;}
+  .coll-grid{grid-template-columns:1fr 1fr;}
+  .summary-row{grid-template-columns:1fr 1fr;}
+  .exp-item{grid-template-columns:80px 1fr auto;}
+  .exp-chg{display:none;}
+  .coll-det-card{padding:14px;}
+}
+</style>
 </head>
 <body>
-    <h1>Stablecoin Monitor</h1>
-    <table>
-        <thead>
-            <tr>
-                <th>Stablecoin</th>
-                <th>Price</th>
-                <th>Backing Asset</th>
-                <th>Status</th>
-            </tr>
-        </thead>
-        <tbody id="stablecoin-table">
-            <!-- Data will be populated here dynamically -->
-        </tbody>
-    </table>
+<div class="scanline"></div>
+<div class="app">
 
-    <script>
-        const stablecoins = [
-            { name: 'USDD', expectedPeg: 1 },
-            { name: 'U', expectedPeg: 1 },
-            { name: 'USD1', expectedPeg: 1 },
-            { name: 'USDe', expectedPeg: 1 },
-            { name: 'FDUSD', expectedPeg: 1 },
-            { name: 'USDJ', expectedPeg: 1 },
-            { name: 'TUSD', expectedPeg: 1 },
-            { name: 'HUSD', expectedPeg: 1 },
-            { name: 'WSTUSDT', expectedPeg: 1 },
-            { name: 'stUSDT', expectedPeg: 1 },
-            { name: 'KGST', expectedPeg: 1 },
-        ];
+<header>
+  <div class="brand">
+    <div class="brand-hex">
+      <svg width="46" height="46" viewBox="0 0 46 46">
+        <polygon points="23,3 40,12.5 40,33.5 23,43 6,33.5 6,12.5" fill="none" stroke="var(--accent)" stroke-width="1.2" opacity=".5"/>
+        <polygon points="23,8 35,14.5 35,31.5 23,38 11,31.5 11,14.5" fill="none" stroke="var(--accent)" stroke-width=".5" opacity=".3"/>
+      </svg>
+      <span>⬡</span>
+    </div>
+    <div class="brand-text">
+      <h1>稳定币全资产监控</h1>
+      <p>Stablecoin · Collateral · Risk Surveillance</p>
+    </div>
+  </div>
+  <div class="header-right">
+    <div class="status-pill">
+      <div class="pulse load" id="statusDot"></div>
+      <span id="statusText">初始化中</span>
+    </div>
+    <button class="icon-btn" id="soundBtn" onclick="toggleSound()">🔕 静音</button>
+    <button class="icon-btn" id="refreshBtn" onclick="manualRefresh()">⟳ 刷新</button>
+  </div>
+</header>
 
-        function fetchStablecoinPrices() {
-            // Here you would typically fetch data from an API
-            // For demonstration purposes, we'll simulate fetching prices
-            stablecoins.forEach(stablecoin => {
-                const price = (Math.random() * 2).toFixed(2); // Simulated price
-                const status = Math.abs(price - stablecoin.expectedPeg) > 0.1 ? 'De-Pegged' : 'Stable';
-                document.getElementById('stablecoin-table').innerHTML += `
-                    <tr>
-                        <td>${stablecoin.name}</td>
-                        <td>${price}</td>
-                        <td>${stablecoin.name} Asset</td>
-                        <td class="${status === 'De-Pegged' ? 'alert' : ''}">${status}</td>
-                    </tr>
-                `;
-            });
-        }
+<div class="tabs">
+  <button class="tab active" onclick="switchTab('overview')" id="tab-btn-overview">总览</button>
+  <button class="tab" onclick="switchTab('collateral')" id="tab-btn-collateral">抵押资产详情</button>
+</div>
 
-        setInterval(fetchStablecoinPrices, 5000); // Refresh data every 5 seconds
-        fetchStablecoinPrices(); // Initial fetch
-    </script>
+<div class="alert-strip" id="alertStrip">
+  <div class="alert-strip-icon">⚡</div>
+  <div class="alert-strip-body">
+    <div class="alert-strip-title">脱锚 / 抵押品异动警报</div>
+    <ul class="alert-items" id="alertItems"></ul>
+  </div>
+</div>
+
+<!-- OVERVIEW TAB -->
+<div id="tab-overview">
+  <div class="summary-row">
+    <div class="scard c-blue">
+      <div class="scard-label">监控稳定币</div>
+      <div class="scard-val">11</div>
+    </div>
+    <div class="scard c-ok">
+      <div class="scard-label">锚定正常</div>
+      <div class="scard-val ok" id="s-ok">—</div>
+    </div>
+    <div class="scard c-warn">
+      <div class="scard-label">轻微偏离</div>
+      <div class="scard-val warn" id="s-warn">—</div>
+    </div>
+    <div class="scard c-alert">
+      <div class="scard-label">严重脱锚</div>
+      <div class="scard-val alert" id="s-alert">—</div>
+    </div>
+    <div class="scard c-blue">
+      <div class="scard-label">最大偏差</div>
+      <div class="scard-val" id="s-maxdev" style="font-size:18px">—</div>
+    </div>
+    <div class="scard c-warn">
+      <div class="scard-label">抵押品异动</div>
+      <div class="scard-val warn" id="s-collAlert">—</div>
+      <div class="scard-sub">24h涨跌 &gt;5%</div>
+    </div>
+  </div>
+
+  <div class="controls-bar">
+    <div class="ctrl-group">
+      <span class="ctrl-label">警告阈值</span>
+      <input class="ctrl-input" type="number" id="warnT" value="0.3" step="0.1" min="0.1">
+      <span class="ctrl-label">%</span>
+    </div>
+    <div class="ctrl-group">
+      <span class="ctrl-label">警报阈值</span>
+      <input class="ctrl-input" type="number" id="alertT" value="1.0" step="0.1" min="0.1">
+      <span class="ctrl-label">%</span>
+    </div>
+    <div class="ctrl-group">
+      <span class="ctrl-label">刷新间隔</span>
+      <input class="ctrl-input" type="number" id="refreshSec" value="60" step="10" min="10">
+      <span class="ctrl-label">秒</span>
+    </div>
+    <span class="last-upd" id="lastUpd">—</span>
+  </div>
+
+  <div class="section-title">实时抵押资产行情</div>
+  <div class="coll-grid" id="collGrid"></div>
+
+  <div class="section-title">稳定币监控 · 含抵押品风险敞口</div>
+  <div class="sc-grid" id="scGrid"></div>
+</div>
+
+<!-- COLLATERAL TAB -->
+<div id="tab-collateral" style="display:none">
+  <div class="section-title">抵押资产详细行情 · 风险敞口分析</div>
+  <div class="coll-detail-grid" id="collDetailGrid"></div>
+</div>
+
+<footer style="margin-top:40px;padding-top:16px;border-top:1px solid var(--border);display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+  <p style="font-size:10px;font-family:var(--mono);color:var(--muted);">数据来源: CoinGecko Public API · 国债利率为近似模拟 · 价格单位: USD · 锚定目标: $1.00</p>
+  <p style="font-size:10px;font-family:var(--mono);color:var(--muted);" id="footerTs">—</p>
+</footer>
+</div>
+
+<script>
+// ═══ DATA DEFINITIONS ═══════════════════════════════════════
+
+const COLLATERALS = [
+  { id:'bitcoin',      sym:'BTC',    name:'Bitcoin',      cgId:'bitcoin',      type:'crypto',    iconChar:'₿', color:'#f7931a' },
+  { id:'ethereum',     sym:'ETH',    name:'Ethereum',     cgId:'ethereum',     type:'crypto',    iconChar:'Ξ', color:'#627eea' },
+  { id:'tron',         sym:'TRX',    name:'TRON',         cgId:'tron',         type:'crypto',    iconChar:'T', color:'#eb0029' },
+  { id:'tether',       sym:'USDT',   name:'Tether',       cgId:'tether',       type:'stable',    iconChar:'₮', color:'#26a17b' },
+  { id:'usd-coin',     sym:'USDC',   name:'USD Coin',     cgId:'usd-coin',     type:'stable',    iconChar:'$', color:'#2775ca' },
+  { id:'gold',         sym:'XAU',    name:'Gold',         cgId:'gold',         type:'commodity', iconChar:'Au',color:'#ffd700' },
+  { id:'us-treasury',  sym:'T-Bill', name:'US Treasury',  cgId:null,           type:'bond',      iconChar:'$', color:'#4caf50' },
+];
+
+const STABLECOINS = [
+  { id:'usdd', sym:'USDD', name:'USDD', cgId:'usdd', chain:'TRON / Multi-chain', issuer:'TRON DAO Reserve', backingType:'超额加密抵押',
+    iconChar:'U', riskLevel:'med', riskTags:['超额抵押','TRX价格敏感','链上可验证'],
+    exposure:[{collId:'tron',label:'TRX',pct:65,note:'主要抵押品，超额抵押比例 >130%'},{collId:'bitcoin',label:'BTC',pct:20,note:'BTC储备资产'},{collId:'tether',label:'USDT',pct:15,note:'流动性支撑'}] },
+  { id:'u', sym:'U', name:'U (Pyth)', cgId:'u', chain:'Solana', issuer:'Pyth Network', backingType:'法币储备',
+    iconChar:'U', riskLevel:'low', riskTags:['国债支撑','中心化风险','低波动'],
+    exposure:[{collId:'us-treasury',label:'T-Bill',pct:80,note:'美国国债支撑'},{collId:'usd-coin',label:'USDC',pct:20,note:'流动性缓冲'}] },
+  { id:'usd1', sym:'USD1', name:'USD1', cgId:'usd1', chain:'BNB Chain / ETH', issuer:'World Liberty Financial', backingType:'国债 + 现金',
+    iconChar:'1', riskLevel:'med', riskTags:['国债支撑','新兴项目','政治关联'],
+    exposure:[{collId:'us-treasury',label:'T-Bill',pct:85,note:'短期美国国债'},{collId:'usd-coin',label:'Cash',pct:15,note:'现金及等价物'}] },
+  { id:'ethena-usde', sym:'USDe', name:'USDe', cgId:'ethena-usde', chain:'Ethereum', issuer:'Ethena Labs', backingType:'Delta中性对冲',
+    iconChar:'e', riskLevel:'high', riskTags:['Delta对冲','ETH价格敏感','资金费率风险'],
+    exposure:[{collId:'ethereum',label:'stETH',pct:55,note:'质押ETH作为抵押'},{collId:'bitcoin',label:'BTC',pct:30,note:'BTC对冲持仓'},{collId:'tether',label:'USDT',pct:15,note:'保证金 & 结算'}] },
+  { id:'first-digital-usd', sym:'FDUSD', name:'FDUSD', cgId:'first-digital-usd', chain:'BNB Chain / ETH', issuer:'First Digital Labs', backingType:'法币储备',
+    iconChar:'F', riskLevel:'low', riskTags:['法币储备','合规审计','香港托管'],
+    exposure:[{collId:'us-treasury',label:'T-Bill',pct:75,note:'美国国债'},{collId:'usd-coin',label:'USD Cash',pct:25,note:'现金储备'}] },
+  { id:'just-stablecoin', sym:'USDJ', name:'USDJ', cgId:'just-stablecoin', chain:'TRON', issuer:'JUST Protocol', backingType:'CDP超额抵押',
+    iconChar:'J', riskLevel:'high', riskTags:['TRX超额抵押','CDP机制','清算风险'],
+    exposure:[{collId:'tron',label:'TRX',pct:100,note:'超额TRX抵押，类MakerDAO'}] },
+  { id:'true-usd', sym:'TUSD', name:'TrueUSD', cgId:'true-usd', chain:'Multi-chain', issuer:'TrueUSD / Archblock', backingType:'法币储备',
+    iconChar:'T', riskLevel:'low', riskTags:['法币储备','实时铸造审计','合规'],
+    exposure:[{collId:'us-treasury',label:'USD / T-Bill',pct:100,note:'由受托机构持有美元'}] },
+  { id:'husd', sym:'HUSD', name:'HUSD', cgId:'husd', chain:'Ethereum', issuer:'HUSD (已停运)', backingType:'法币储备 (停运)',
+    iconChar:'H', riskLevel:'high', riskTags:['⚠️ 停运','流动性极低','高风险'],
+    exposure:[{collId:'usd-coin',label:'USD',pct:100,note:'已停止运营，流动性极低'}] },
+  { id:'wrapped-stusdt', sym:'WSTUSDT', name:'wstUSDT', cgId:'wrapped-stusdt', chain:'TRON', issuer:'JustLend DAO', backingType:'USDT质押凭证',
+    iconChar:'W', riskLevel:'low', riskTags:['USDT质押','收益型','合约风险'],
+    exposure:[{collId:'tether',label:'USDT',pct:100,note:'1:1 USDT质押，含收益累积'}] },
+  { id:'stusdt', sym:'stUSDT', name:'stUSDT', cgId:'stusdt', chain:'TRON', issuer:'JustLend DAO', backingType:'USDT + 国债收益',
+    iconChar:'S', riskLevel:'low', riskTags:['USDT支撑','收益分配','RWA'],
+    exposure:[{collId:'tether',label:'USDT',pct:70,note:'USDT底层储备'},{collId:'us-treasury',label:'T-Bill',pct:30,note:'国债收益分配'}] },
+  { id:'kgst', sym:'KGST', name:'KGST', cgId:'kilo-gold', chain:'未知', issuer:'未知', backingType:'黄金支撑 (待核实)',
+    iconChar:'K', riskLevel:'high', riskTags:['⚠️ 信息有限','黄金声称','待核实'],
+    exposure:[{collId:'gold',label:'XAU',pct:100,note:'声称与黄金价格挂钩'}] },
+];
+
+// ═══ STATE ═══════════════════════════════════════
+
+let scPrices = {}, collPrices = {};
+let soundOn = false, refreshTimer = null, isLoading = false;
+
+// ═══ FETCH ═══════════════════════════════════════
+
+async function fetchAll() {
+  if (isLoading) return;
+  isLoading = true;
+  setStatus('load','数据获取中...');
+  document.getElementById('refreshBtn').disabled = true;
+
+  const scIds   = STABLECOINS.map(c=>c.cgId).filter(Boolean);
+  const collIds = COLLATERALS.map(c=>c.cgId).filter(Boolean);
+  const allIds  = [...new Set([...scIds,...collIds])];
+  let ok = false;
+
+  // Attempt 1: simple/price
+  try {
+    const url = `https://api.coingecko.com/api/v3/simple/price?ids=${allIds.join(',')}&vs_currencies=usd&include_24hr_change=true&include_market_cap=true&include_24hr_vol=true`;
+    const r = await fetch(url, {signal:AbortSignal.timeout(14000)});
+    if (r.ok) {
+      const data = await r.json();
+      STABLECOINS.forEach(c => {
+        if (!c.cgId) return;
+        const e = data[c.cgId];
+        if (e && e.usd != null) scPrices[c.cgId] = {price:e.usd,change24h:e.usd_24h_change||0,marketCap:e.usd_market_cap||0,vol24h:e.usd_24h_vol||0};
+      });
+      COLLATERALS.forEach(c => {
+        if (!c.cgId) return;
+        const e = data[c.cgId];
+        if (e && e.usd != null) collPrices[c.id] = {price:e.usd,change24h:e.usd_24h_change||0};
+      });
+      ok = true;
+    }
+  } catch(e) { console.warn('Fetch 1 failed:',e.message); }
+
+  // Attempt 2: coins/markets
+  if (!ok) {
+    try {
+      const url2 = `https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=${allIds.join(',')}&order=market_cap_desc&per_page=50&page=1`;
+      const r2 = await fetch(url2, {signal:AbortSignal.timeout(12000)});
+      if (r2.ok) {
+        const arr = await r2.json();
+        arr.forEach(e => {
+          const sc = STABLECOINS.find(c=>c.cgId===e.id);
+          if (sc) scPrices[sc.cgId] = {price:e.current_price,change24h:e.price_change_percentage_24h||0,marketCap:e.market_cap||0,vol24h:e.total_volume||0};
+          const co = COLLATERALS.find(c=>c.cgId===e.id);
+          if (co) collPrices[co.id] = {price:e.current_price,change24h:e.price_change_percentage_24h||0};
+        });
+        ok = true;
+      }
+    } catch(e) { console.warn('Fetch 2 failed:',e.message); }
+  }
+
+  // Simulate T-Bill (≈$100, tiny daily movement)
+  if (!collPrices['us-treasury']) {
+    collPrices['us-treasury'] = {price:100.00, change24h:(Math.random()-0.5)*0.06, isSim:true};
+  }
+
+  renderCollGrid();
+  renderScGrid();
+  renderCollDetail();
+  updateSummary();
+  checkAlerts();
+
+  const ts = new Date();
+  const tStr = ts.toLocaleTimeString('zh-CN',{hour12:false});
+  document.getElementById('lastUpd').textContent = '上次更新: '+tStr;
+  document.getElementById('footerTs').textContent = ts.toLocaleDateString('zh-CN')+' '+tStr;
+  setStatus(ok?'ok':'err', ok?'实时监控中':'数据受限');
+  document.getElementById('refreshBtn').disabled = false;
+  isLoading = false;
+  scheduleRefresh();
+}
+
+function setStatus(s, t) {
+  document.getElementById('statusDot').className = 'pulse'+(s==='load'?' load':s==='err'?' err':s==='warn'?' warn':'');
+  document.getElementById('statusText').textContent = t;
+}
+
+// ═══ RENDER: COLLATERAL QUICK GRID ═══════════════
+
+function fmtCollPrice(c, price) {
+  if (price==null) return '—';
+  if (c.type==='bond') return price.toFixed(2)+' (模拟)';
+  if (c.type==='stable') return '$'+price.toFixed(4);
+  if (price>=1000) return '$'+price.toLocaleString('en',{maximumFractionDigits:2});
+  return '$'+price.toFixed(4);
+}
+
+function renderCollGrid() {
+  const grid = document.getElementById('collGrid');
+  grid.innerHTML = '';
+  COLLATERALS.forEach(c => {
+    const d = collPrices[c.id];
+    const price = d?d.price:null;
+    const chg = d?d.change24h:null;
+    const abs = chg!=null?Math.abs(chg):0;
+    const hi = abs>=5, med = abs>=2&&!hi;
+    const cls = chg==null?'neu':chg>0?'pos':'neg';
+    const cStr = chg!=null?(chg>=0?'+':'')+chg.toFixed(2)+'%':'—';
+    const rPct = Math.min(abs/10*100,100);
+    const rColor = hi?'var(--red)':med?'var(--yellow)':'var(--green)';
+    const users = STABLECOINS.filter(s=>s.exposure.some(e=>e.collId===c.id));
+    const div = document.createElement('div');
+    div.className = 'coll-card'+(hi?' c-risk-high':med?' c-risk-med':'');
+    div.innerHTML = `
+      <div class="coll-header">
+        <div class="coll-name-row">
+          <div class="coll-icon" id="ci-${c.id}">${c.iconChar}</div>
+          <div><div class="coll-sym">${c.sym}</div></div>
+        </div>
+        <span class="coll-type-tag">${c.type==='crypto'?'加密':c.type==='commodity'?'商品':c.type==='bond'?'债券':'稳定'}</span>
+      </div>
+      <div class="coll-price">${fmtCollPrice(c,price)}</div>
+      <div class="coll-change ${cls}">${cStr} 24h</div>
+      <div class="coll-risk-bar">
+        <div class="coll-risk-label"><span>24H 波动风险</span><span>${abs.toFixed(2)}%</span></div>
+        <div class="risk-track"><div class="risk-fill" style="width:${rPct}%;background:${rColor};"></div></div>
+      </div>
+      <div class="coll-users">${users.map(s=>`<span class="coll-user-tag">${s.sym}</span>`).join('')}</div>`;
+    grid.appendChild(div);
+    if (c.cgId) loadIcon(c.cgId, `ci-${c.id}`, c.iconChar);
+  });
+}
+
+// ═══ RENDER: SC CARDS ════════════════════════════
+
+function getStatus(price) {
+  if (price==null) return 'unk';
+  const w=parseFloat(document.getElementById('warnT').value)/100;
+  const a=parseFloat(document.getElementById('alertT').value)/100;
+  const d=Math.abs(price-1);
+  return d>=a?'alert':d>=w?'warn':'ok';
+}
+function getDev(price) { return price==null?null:(price-1)*100; }
+
+function renderScGrid() {
+  const grid = document.getElementById('scGrid');
+  grid.innerHTML = '';
+  STABLECOINS.forEach(sc => {
+    const d = sc.cgId?scPrices[sc.cgId]:null;
+    const price = d?d.price:null;
+    const st = getStatus(price);
+    const dev = getDev(price);
+    const chg = d?d.change24h:null;
+    const chgCls = chg==null?'neu':chg>0?'pos':'neg';
+    const chgStr = chg!=null?(chg>=0?'+':'')+chg.toFixed(3)+'%':'—';
+    const devStr = dev!=null?(dev>=0?'+':'')+dev.toFixed(4)+'%':'—';
+
+    let devLeft='50%', devW='0%', devColor='var(--muted)';
+    if (dev!=null) {
+      const cl=Math.min(Math.abs(dev),5)/5*50;
+      devW=cl+'%'; devLeft=dev>=0?'50%':(50-cl)+'%';
+      devColor=st==='alert'?'var(--red)':st==='warn'?'var(--yellow)':'var(--green)';
+    }
+
+    const expRows = sc.exposure.map(exp => {
+      const cd = collPrices[exp.collId];
+      const cc = COLLATERALS.find(c=>c.id===exp.collId);
+      const ec = cd?cd.change24h:null;
+      const eCls = ec==null?'neu':ec>0?'pos':'neg';
+      const eStr = ec!=null?(ec>=0?'+':'')+ec.toFixed(2)+'%':'—';
+      const barColor = cc?cc.color:'var(--accent)';
+      // Risk indicator for this exposure
+      const expRisk = ec!=null&&Math.abs(ec)>=5?'⚠':'';
+      return `<div class="exp-item">
+        <div class="exp-asset-name">
+          <div class="exp-dot" style="background:${barColor}"></div>
+          <span class="exp-sym-text">${expRisk}${exp.label}</span>
+        </div>
+        <div class="exp-bar-wrap"><div class="exp-bar-fill" style="width:${exp.pct}%;background:${barColor};opacity:.7;"></div></div>
+        <span class="exp-pct">${exp.pct}%</span>
+        <span class="exp-chg ${eCls}">${eStr}</span>
+      </div>`;
+    }).join('');
+
+    const riskTagsHtml = sc.riskTags.map(t=>{
+      const lv=t.includes('⚠')||sc.riskLevel==='high'&&(t.includes('风险')||t.includes('敏感')||t.includes('清算'))?'high':sc.riskLevel==='med'?'med':t.includes('合规')||t.includes('审计')||t.includes('可验证')?'low':'info';
+      return `<span class="risk-tag ${lv}">${t}</span>`;
+    }).join('');
+
+    const labels = {ok:'锚定正常',warn:'轻微偏离',alert:'严重脱锚',unk:'数据缺失'};
+    const card = document.createElement('div');
+    card.className = `sc-card s-${st}`;
+    card.id = 'sc-'+sc.id;
+    card.innerHTML = `
+      <div class="sc-top">
+        <div class="sc-coin-row">
+          <div class="sc-icon" id="si-${sc.id}">${sc.iconChar}</div>
+          <div><div class="sc-sym">${sc.sym}</div><div class="sc-chain">${sc.chain}</div></div>
+        </div>
+        <div class="badge ${st}"><div class="badge-dot"></div>${labels[st]}</div>
+      </div>
+      <div class="sc-body">
+        <div class="price-row">
+          ${price!=null
+            ?`<div class="price-big ${st}">$${price.toFixed(6)}</div><div class="price-chg ${chgCls}">${chgStr}</div>`
+            :`<div class="price-big unk">数据获取中</div>`}
+        </div>
+        <div class="dev-row">
+          <div class="dev-labels"><span>锚定偏差 ($1.00)</span><span class="${st}">${devStr}</span></div>
+          <div class="dev-track"><div class="dev-bar" style="left:${devLeft};width:${devW};background:${devColor};"></div></div>
+        </div>
+        <div class="coll-exposure">
+          <div class="exp-title">抵押资产风险敞口 · 实时行情</div>
+          <div class="exp-items">${expRows}</div>
+          <div class="risk-summary">${riskTagsHtml}</div>
+        </div>
+        <div class="sc-meta">
+          <div><div class="meta-k">市值</div><div class="meta-v">${d?fmtBig(d.marketCap):'—'}</div></div>
+          <div><div class="meta-k">24H 交易量</div><div class="meta-v">${d?fmtBig(d.vol24h):'—'}</div></div>
+          <div><div class="meta-k">发行方</div><div class="meta-v" style="font-size:10px">${sc.issuer}</div></div>
+          <div><div class="meta-k">抵押类型</div><div class="meta-v" style="font-size:10px">${sc.backingType}</div></div>
+        </div>
+      </div>`;
+    grid.appendChild(card);
+    if (sc.cgId) loadIcon(sc.cgId, 'si-'+sc.id, sc.iconChar);
+  });
+}
+
+// ═══ RENDER: COLLATERAL DETAIL TAB ═══════════════
+
+function renderCollDetail() {
+  const grid = document.getElementById('collDetailGrid');
+  grid.innerHTML = '';
+  COLLATERALS.forEach(c => {
+    const d = collPrices[c.id];
+    const price = d?d.price:null;
+    const chg = d?d.change24h:null;
+    const abs = chg!=null?Math.abs(chg):0;
+    const hi = abs>=5, med = abs>=2&&!hi;
+    const cls = chg==null?'neu':chg>0?'pos':'neg';
+    const cStr = chg!=null?(chg>=0?'+':'')+chg.toFixed(3)+'%':'—';
+    const rColor = hi?'var(--red)':med?'var(--yellow)':'var(--green)';
+    const rPct = Math.min(abs/10*100,100);
+    const rLabel = hi?'⚠ 高风险':med?'△ 中等波动':'✓ 正常';
+    const users = STABLECOINS.filter(s=>s.exposure.some(e=>e.collId===c.id));
+
+    const div = document.createElement('div');
+    div.className = 'coll-det-card'+(hi?' risk-high':med?' risk-med':'');
+    div.innerHTML = `
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+        <div class="coll-icon" style="width:36px;height:36px;font-size:15px;" id="cdi-${c.id}">${c.iconChar}</div>
+        <div style="flex:1">
+          <div style="font-size:16px;font-weight:700;color:var(--white);font-family:var(--mono);">${c.sym}</div>
+          <div style="font-size:10px;color:var(--muted);font-family:var(--mono);">${c.name}</div>
+        </div>
+        <span class="coll-type-tag">${c.type==='crypto'?'加密资产':c.type==='commodity'?'大宗商品':c.type==='bond'?'国债':'稳定币'}</span>
+      </div>
+      <div style="font-size:26px;font-family:var(--mono);font-weight:600;color:var(--white);margin-bottom:6px;">${fmtCollPrice(c,price)}</div>
+      <div class="coll-change ${cls}" style="margin-bottom:${d&&d.isSim?'6':'14'}px;">${cStr} · 24h变动</div>
+      ${d&&d.isSim?'<div style="font-size:10px;font-family:var(--mono);color:var(--orange);margin-bottom:10px;">⚠ 国债价格为模拟近似数据</div>':''}
+      <div style="margin-bottom:16px;">
+        <div style="display:flex;justify-content:space-between;font-size:9px;font-family:var(--mono);color:var(--muted);margin-bottom:5px;letter-spacing:.1em;">
+          <span>24H 波动风险评估</span><span style="color:${rColor};font-size:11px;">${rLabel} ${abs.toFixed(3)}%</span>
+        </div>
+        <div style="height:6px;background:rgba(255,255,255,.05);border-radius:3px;overflow:hidden;">
+          <div style="width:${rPct}%;height:100%;background:${rColor};border-radius:3px;transition:width .8s;"></div>
+        </div>
+      </div>
+      <div style="border-top:1px solid var(--border);padding-top:12px;">
+        <div style="font-size:9px;font-family:var(--mono);color:var(--muted);letter-spacing:.14em;text-transform:uppercase;margin-bottom:10px;">依赖此资产的稳定币</div>
+        ${users.length===0?'<div style="font-size:11px;font-family:var(--mono);color:var(--muted);">无</div>':
+          users.map(s=>{
+            const exp=s.exposure.find(e=>e.collId===c.id);
+            return `<div style="margin-bottom:10px;">
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+                <span style="font-family:var(--mono);font-size:13px;font-weight:600;color:var(--white);width:80px;">${s.sym}</span>
+                <div style="flex:1;height:4px;background:rgba(255,255,255,.05);border-radius:2px;overflow:hidden;">
+                  <div style="width:${exp.pct}%;height:100%;background:${c.color};opacity:.7;border-radius:2px;"></div>
+                </div>
+                <span style="font-size:10px;font-family:var(--mono);color:var(--muted);min-width:32px;text-align:right;">${exp.pct}%</span>
+              </div>
+              <div style="font-size:10px;color:var(--muted);font-family:var(--mono);padding-left:88px;">${exp.note}</div>
+            </div>`;
+          }).join('')}
+      </div>`;
+    grid.appendChild(div);
+    if (c.cgId) loadIcon(c.cgId, 'cdi-'+c.id, c.iconChar);
+  });
+}
+
+// ═══ SUMMARY & ALERTS ════════════════════════════
+
+function updateSummary() {
+  let ok=0,warn=0,alert=0,maxDev=0,collA=0;
+  STABLECOINS.forEach(sc=>{
+    const d=sc.cgId?scPrices[sc.cgId]:null;
+    const p=d?d.price:null;
+    const st=getStatus(p);
+    if(st==='ok')ok++;else if(st==='warn')warn++;else if(st==='alert')alert++;
+    const dev=getDev(p);
+    if(dev!=null&&Math.abs(dev)>maxDev)maxDev=Math.abs(dev);
+  });
+  COLLATERALS.forEach(c=>{
+    const d=collPrices[c.id];
+    if(d&&Math.abs(d.change24h)>=5)collA++;
+  });
+  document.getElementById('s-ok').textContent=ok;
+  document.getElementById('s-warn').textContent=warn;
+  document.getElementById('s-alert').textContent=alert;
+  document.getElementById('s-maxdev').textContent=maxDev.toFixed(3)+'%';
+  document.getElementById('s-collAlert').textContent=collA;
+  document.getElementById('s-collAlert').className='scard-val '+(collA>0?'warn':'ok');
+}
+
+function checkAlerts() {
+  const strip=document.getElementById('alertStrip');
+  const items=document.getElementById('alertItems');
+  const aT=parseFloat(document.getElementById('alertT').value)/100;
+  const wT=parseFloat(document.getElementById('warnT').value)/100;
+  const lines=[];
+  STABLECOINS.forEach(sc=>{
+    const d=sc.cgId?scPrices[sc.cgId]:null;
+    if(!d||d.price==null)return;
+    const dev=Math.abs(d.price-1);
+    const pct=(d.price-1)*100;
+    const pStr=(pct>=0?'+':'')+pct.toFixed(4)+'%';
+    if(dev>=aT) lines.push(`🔴 [脱锚] ${sc.sym} — $${d.price.toFixed(6)} | 偏差 ${pStr}`);
+    else if(dev>=wT) lines.push(`🟡 [警告] ${sc.sym} — $${d.price.toFixed(6)} | 偏差 ${pStr}`);
+  });
+  COLLATERALS.forEach(c=>{
+    const d=collPrices[c.id];
+    if(!d)return;
+    const abs=Math.abs(d.change24h);
+    const affected=STABLECOINS.filter(s=>s.exposure.some(e=>e.collId===c.id)).map(s=>s.sym).join('、');
+    if(abs>=10) lines.push(`🔴 [抵押品急变] ${c.sym} — 24H变动 ${d.change24h.toFixed(2)}% | 影响: ${affected}`);
+    else if(abs>=5) lines.push(`🟡 [抵押品异动] ${c.sym} — 24H变动 ${d.change24h.toFixed(2)}% | 影响: ${affected}`);
+  });
+  if(lines.length>0){
+    strip.className='alert-strip on';
+    items.innerHTML=lines.map(l=>`<li>${l}</li>`).join('');
+    if(soundOn&&lines.some(l=>l.includes('🔴')))playBeep();
+    setStatus('warn','检测到异动');
+  } else {
+    strip.className='alert-strip';
+    items.innerHTML='';
+  }
+}
+
+// ═══ ICON LOADER ════════════════════════════════
+
+const iconCache = {};
+async function loadIcon(cgId, elId, fallback) {
+  if (iconCache[cgId]) {
+    const el = document.getElementById(elId);
+    if (el) el.innerHTML = `<img src="${iconCache[cgId]}" alt="" onerror="this.parentNode.textContent='${fallback}'">`;
+    return;
+  }
+  try {
+    const r = await fetch(`https://api.coingecko.com/api/v3/coins/${cgId}?localization=false&tickers=false&market_data=false&community_data=false&developer_data=false`);
+    if (!r.ok) return;
+    const data = await r.json();
+    const img = data.image && (data.image.small || data.image.thumb);
+    if (!img) return;
+    iconCache[cgId] = img;
+    ['ci-','cdi-','si-'].forEach(pfx => {
+      const tId = pfx + (COLLATERALS.find(c=>c.cgId===cgId)?.id || STABLECOINS.find(c=>c.cgId===cgId)?.id || '');
+      const el = document.getElementById(tId);
+      if (el) el.innerHTML = `<img src="${img}" alt="" onerror="this.parentNode.textContent='${fallback}'">`;
+    });
+    const el = document.getElementById(elId);
+    if (el) el.innerHTML = `<img src="${img}" alt="" onerror="this.parentNode.textContent='${fallback}'">`;
+  } catch(_) {}
+}
+
+// ═══ UTILS ═══════════════════════════════════════
+
+function fmtBig(n){if(!n)return'—';if(n>=1e9)return'$'+(n/1e9).toFixed(2)+'B';if(n>=1e6)return'$'+(n/1e6).toFixed(1)+'M';return'$'+n.toLocaleString();}
+
+function playBeep(){
+  try{
+    const ctx=new(window.AudioContext||window.webkitAudioContext)();
+    [[880,0],[660,.3]].forEach(([f,t])=>{
+      const o=ctx.createOscillator(),g=ctx.createGain();
+      o.connect(g);g.connect(ctx.destination);
+      o.frequency.value=f;o.type='sine';
+      g.gain.setValueAtTime(.08,ctx.currentTime+t);
+      g.gain.exponentialRampToValueAtTime(.001,ctx.currentTime+t+.4);
+      o.start(ctx.currentTime+t);o.stop(ctx.currentTime+t+.5);
+    });
+  }catch(_){}
+}
+
+function toggleSound(){
+  soundOn=!soundOn;
+  const btn=document.getElementById('soundBtn');
+  btn.textContent=soundOn?'🔔 声音开':'🔕 静音';
+  btn.className='icon-btn'+(soundOn?' active':'');
+}
+
+function scheduleRefresh(){
+  if(refreshTimer)clearTimeout(refreshTimer);
+  const s=Math.max(10,parseInt(document.getElementById('refreshSec').value)||60);
+  refreshTimer=setTimeout(fetchAll,s*1000);
+}
+
+function manualRefresh(){if(refreshTimer)clearTimeout(refreshTimer);fetchAll();}
+
+function switchTab(name){
+  ['overview','collateral'].forEach(t=>{
+    document.getElementById('tab-'+t).style.display=t===name?'block':'none';
+    document.getElementById('tab-btn-'+t).className='tab'+(t===name?' active':'');
+  });
+}
+
+document.getElementById('warnT').addEventListener('input',()=>{renderScGrid();updateSummary();checkAlerts();});
+document.getElementById('alertT').addEventListener('input',()=>{renderScGrid();updateSummary();checkAlerts();});
+document.getElementById('refreshSec').addEventListener('change',scheduleRefresh);
+
+// INIT
+fetchAll();
+</script>
 </body>
 </html>
