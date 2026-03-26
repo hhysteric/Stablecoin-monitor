@@ -150,6 +150,15 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC'
   <div class="grid" id="main-grid"></div>
 
   <div class="section-header">
+    <div class="section-title-text">收益型稳定币（单独监控）</div>
+    <div class="threshold-info">
+      <span class="t-item"><span class="t-dot" style="background:#1D9E75"></span>收益累积时价格略高于 $1 属正常</span>
+    </div>
+  </div>
+  <hr class="divider">
+  <div class="grid" id="yield-grid"></div>
+
+  <div class="section-header">
     <div class="section-title-text">KGS 锚定稳定币</div>
     <div class="threshold-info">
       <span class="t-item"><span class="t-dot" style="background:#7F77DD"></span>锚定吉尔吉斯斯坦索姆（KGS）</span>
@@ -180,7 +189,7 @@ const COINS = [
   { id: 'true-usd',              symbol: 'TUSD',    name: 'TrueUSD',                peg: 'usd' },
   { id: 'husd',                  symbol: 'HUSD',    name: 'HUSD',                   peg: 'usd' },
   { id: 'wrapped-staked-usdt',   symbol: 'WSTUSDT', name: 'Wrapped Staked USDT',    peg: 'usd' },
-  { id: 'stusdt-staked-usdt',    symbol: 'stUSDT',  name: 'stUSDT (JustLend)',      peg: 'usd' },
+  { id: 'stusdt-staked-usdt',    symbol: 'stUSDT',  name: 'stUSDT (JustLend)',      peg: 'usd', cgId: 'staked-usdt' },
   { id: 'kyrgyz-som-stablecoin', symbol: 'KGST',    name: 'Kyrgyz Som Stablecoin',  peg: 'kgs' },
 ];
 
@@ -316,6 +325,13 @@ let coinData   = {};
 let kgsPerUsd  = null;
 let selectedId = null;
 
+function getCoinGeckoId(coinOrId) {
+  const coin = typeof coinOrId === 'string'
+    ? COINS.find(c => c.id === coinOrId)
+    : coinOrId;
+  return coin?.cgId || coin?.id || coinOrId;
+}
+
 function getStatus(coin, price, vol) {
   if (price === null) return 'loading';
   if (coin.peg === 'kgs') {
@@ -420,7 +436,7 @@ function renderCard(coin, container) {
 
   card.onclick = () => {
     if (ri) toggleReserve(coin.id);
-    else window.open('https://www.coingecko.com/en/coins/' + coin.id, '_blank');
+    else window.open('https://www.coingecko.com/en/coins/' + getCoinGeckoId(coin), '_blank');
   };
 }
 
@@ -474,7 +490,7 @@ function showReserve(id) {
         <div class="rp-row"><span class="rp-key">审计方</span><span class="rp-val neutral" style="white-space:pre-line">${ri.audit}</span></div>
         <div class="rp-row"><span class="rp-key">审计周期</span><span class="rp-val"><span class="rp-tag ${attTagClass}">${ri.attestation}</span></span></div>
         <div class="rp-row"><span class="rp-key">风险评级</span><span class="rp-val"><span class="rp-tag ${riskTagClass}">${ri.riskLabel}</span></span></div>
-        <div style="margin-top:10px;">${dashLink}<a class="rp-link" href="https://www.coingecko.com/en/coins/${id}" target="_blank" rel="noopener">📊 CoinGecko 行情 ↗</a></div>
+        <div style="margin-top:10px;">${dashLink}<a class="rp-link" href="https://www.coingecko.com/en/coins/${getCoinGeckoId(id)}" target="_blank" rel="noopener">📊 CoinGecko 行情 ↗</a></div>
       </div>
       <div>
         <div class="rp-section-title">市场数据</div>
@@ -493,10 +509,12 @@ function showReserve(id) {
 
 function distribute(rebuild) {
   const mainGrid  = document.getElementById('main-grid');
+  const yieldGrid = document.getElementById('yield-grid');
   const kgsGrid   = document.getElementById('kgs-grid');
   const lowSec    = document.getElementById('low-section');
+  const yieldCoinIds = new Set(['wrapped-staked-usdt', 'stusdt-staked-usdt']);
 
-  if (rebuild) { mainGrid.innerHTML = ''; kgsGrid.innerHTML = ''; }
+  if (rebuild) { mainGrid.innerHTML = ''; yieldGrid.innerHTML = ''; kgsGrid.innerHTML = ''; }
 
   let ok=0, warn=0, alert=0;
   const alerts = [], lowCoins = [];
@@ -508,6 +526,15 @@ function distribute(rebuild) {
     const status = getStatus(coin, price, vol);
 
     if (coin.peg === 'kgs') { renderCard(coin, kgsGrid); return; }
+    if (yieldCoinIds.has(coin.id)) {
+      renderCard(coin, yieldGrid);
+      if (price !== null) {
+        if (status === 'ok') ok++;
+        else if (status === 'warn') warn++;
+        else if (status === 'alert') { alert++; alerts.push(coin.symbol); }
+      }
+      return;
+    }
     if (status === 'low') { lowCoins.push(coin); return; }
 
     renderCard(coin, mainGrid);
@@ -567,14 +594,18 @@ async function fetchAll() {
   const btn = document.getElementById('refresh-btn');
   btn.textContent = '加载中...'; btn.classList.add('loading');
 
-  const ids = COINS.map(c => c.id).join(',');
+  const ids = [...new Set(COINS.map(c => getCoinGeckoId(c)))].join(',');
   const url = `https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=${ids}&order=market_cap_desc&per_page=50&page=1&sparkline=false`;
 
   try {
     const [, priceResp] = await Promise.all([fetchKgsRate(), fetch(url)]);
     if (!priceResp.ok) throw new Error('CoinGecko ' + priceResp.status);
     const data = await priceResp.json();
-    data.forEach(item => { coinData[item.id] = { price: item.current_price, vol: item.total_volume, mc: item.market_cap }; });
+    data.forEach(item => {
+      const coin = COINS.find(c => getCoinGeckoId(c) === item.id);
+      if (!coin) return;
+      coinData[coin.id] = { price: item.current_price, vol: item.total_volume, mc: item.market_cap };
+    });
     COINS.forEach(c => { if (!coinData[c.id]) coinData[c.id] = { price: null, vol: null, mc: null }; });
     distribute(true);
     if (selectedId) showReserve(selectedId);
