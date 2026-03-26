@@ -148,7 +148,6 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC'
     </div>
     <button class="btn" id="voice-alert-btn" onclick="toggleVoiceAlert()">🔈 语音警报：关</button>
     <button class="btn" id="tg-alert-btn" onclick="toggleTelegramAlert()">📩 TG：关</button>
-    <button class="btn" id="tg-config-btn" onclick="configTelegram()">TG 配置</button>
     <button class="btn" id="tg-test-btn" onclick="sendTelegramTest()">TG 测试</button>
     <a class="btn" id="tg-channel-link" href="https://t.me/StableCoinM0nitor" target="_blank" rel="noopener noreferrer">TG 通知频道</a>
     <button class="btn" id="refresh-btn" onclick="fetchAll()">刷新</button>
@@ -425,13 +424,13 @@ function refreshTelegramBtn() {
 }
 function initTelegramConfig() {
   try {
-    telegramBotToken = localStorage.getItem(TG_BOT_TOKEN_KEY) || TG_DEFAULT_BOT_TOKEN;
+    telegramBotToken = TG_DEFAULT_BOT_TOKEN;
     telegramChatId = localStorage.getItem(TG_CHAT_ID_KEY) || TG_DEFAULT_CHAT_ID;
     const enabledVal = localStorage.getItem(TG_ENABLED_KEY);
     telegramEnabled = enabledVal === null
       ? (!!telegramBotToken && !!telegramChatId)
       : (enabledVal === '1' && !!telegramBotToken && !!telegramChatId);
-    if (telegramBotToken) localStorage.setItem(TG_BOT_TOKEN_KEY, telegramBotToken);
+    localStorage.setItem(TG_BOT_TOKEN_KEY, telegramBotToken);
     if (telegramChatId) localStorage.setItem(TG_CHAT_ID_KEY, telegramChatId);
     localStorage.setItem(TG_ENABLED_KEY, telegramEnabled ? '1' : '0');
   } catch (e) {
@@ -441,22 +440,9 @@ function initTelegramConfig() {
   }
   refreshTelegramBtn();
 }
-function configTelegram() {
-  const cid = window.prompt('请输入 Telegram Chat ID（群组通常为负数）', telegramChatId || '');
-  if (cid === null) return;
-  telegramChatId = cid.trim();
-  if (!telegramChatId) telegramEnabled = false;
-  try {
-    if (telegramBotToken) localStorage.setItem(TG_BOT_TOKEN_KEY, telegramBotToken);
-    if (telegramChatId) localStorage.setItem(TG_CHAT_ID_KEY, telegramChatId);
-    else localStorage.removeItem(TG_CHAT_ID_KEY);
-    localStorage.setItem(TG_ENABLED_KEY, telegramEnabled ? '1' : '0');
-  } catch (e) {}
-  refreshTelegramBtn();
-}
 function toggleTelegramAlert() {
   if (!telegramBotToken || !telegramChatId) {
-    window.alert('请先点击「TG 配置」填写 Bot Token 与 Chat ID。');
+    window.alert('TG 默认配置缺失，请联系管理员检查网页内置 Token/Chat ID。');
     return;
   }
   telegramEnabled = !telegramEnabled;
@@ -478,7 +464,7 @@ async function sendTelegramAlert(text, force = false) {
 }
 async function sendTelegramTest() {
   if (!telegramBotToken || !telegramChatId) {
-    window.alert('请先配置 Telegram Bot Token 与 Chat ID。');
+    window.alert('TG 默认配置缺失，请联系管理员检查网页内置 Token/Chat ID。');
     return;
   }
   try {
