@@ -400,7 +400,6 @@ function toggleVoiceAlert() {
   btn.className = voiceAlertEnabled ? 'btn active' : 'btn';
   if (voiceAlertEnabled) {
     offPegAlertLevel = {};
-    distribute(false);
   }
 }
 function speakAlert(text) {
@@ -413,6 +412,7 @@ function speakAlert(text) {
   window.speechSynthesis.speak(u);
 }
 function triggerOffPegAlerts(mainUsdCoins) {
+  if (!voiceAlertEnabled) return;
   mainUsdCoins.forEach(({ coin, price }) => {
     if (price === null) return;
     const dev = Math.abs(price - 1);
@@ -420,7 +420,7 @@ function triggerOffPegAlerts(mainUsdCoins) {
     const prev = offPegAlertLevel[coin.id] || 0;
     offPegAlertLevel[coin.id] = level;
 
-    if (!voiceAlertEnabled || level <= prev || level === 0) return;
+    if (level <= prev || level === 0) return;
     if (level === 1) {
       speakAlert(`警报，${coin.symbol} 脱锚超过百分之一，当前价格 ${price.toFixed(4)} 美元`);
       return;
