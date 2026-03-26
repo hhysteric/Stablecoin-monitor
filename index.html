@@ -147,9 +147,6 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC'
       <span class="t-item"><span class="t-dot" style="background:#A32D2D"></span>&gt;±10%弹窗</span>
     </div>
     <button class="btn" id="voice-alert-btn" onclick="toggleVoiceAlert()">🔈 语音警报：关</button>
-    <button class="btn" id="slack-alert-btn" onclick="toggleSlackAlert()">📨 Slack：关</button>
-    <button class="btn" id="slack-config-btn" onclick="configSlackWebhook()">Slack 配置</button>
-    <button class="btn" id="slack-test-btn" onclick="sendSlackTest()">Slack 测试</button>
     <button class="btn" id="tg-alert-btn" onclick="toggleTelegramAlert()">📩 TG：关</button>
     <button class="btn" id="tg-config-btn" onclick="configTelegram()">TG 配置</button>
     <button class="btn" id="tg-test-btn" onclick="sendTelegramTest()">TG 测试</button>
@@ -336,13 +333,11 @@ let selectedId = null;
 let trendData  = {};
 let voiceAlertEnabled = false;
 let offPegAlertLevel  = {};
-let slackAlertEnabled = false;
-let slackWebhookUrl   = '';
-const SLACK_WEBHOOK_KEY = 'stablecoin_monitor_slack_webhook';
-const SLACK_ENABLED_KEY = 'stablecoin_monitor_slack_enabled';
 const TG_BOT_TOKEN_KEY  = 'stablecoin_monitor_tg_bot_token';
 const TG_CHAT_ID_KEY    = 'stablecoin_monitor_tg_chat_id';
 const TG_ENABLED_KEY    = 'stablecoin_monitor_tg_enabled';
+const TG_DEFAULT_BOT_TOKEN = '8733255882:AAHXFgElrHmTGK_ZfzZ2pOQMyP1uSgIwgLA';
+const TG_DEFAULT_CHAT_ID = '8733255882';
 let telegramEnabled = false;
 let telegramBotToken = '';
 let telegramChatId = '';
@@ -420,60 +415,6 @@ function toggleVoiceAlert() {
     offPegAlertLevel = {};
   }
 }
-function refreshSlackBtn() {
-  const btn = document.getElementById('slack-alert-btn');
-  if (!btn) return;
-  const ok = slackAlertEnabled && !!slackWebhookUrl;
-  btn.textContent = ok ? '📨 Slack：开' : '📨 Slack：关';
-  btn.className = ok ? 'btn active' : 'btn';
-}
-function initSlackConfig() {
-  try {
-    slackWebhookUrl = localStorage.getItem(SLACK_WEBHOOK_KEY) || '';
-    slackAlertEnabled = localStorage.getItem(SLACK_ENABLED_KEY) === '1' && !!slackWebhookUrl;
-  } catch (e) {
-    slackWebhookUrl = '';
-    slackAlertEnabled = false;
-  }
-  refreshSlackBtn();
-}
-function configSlackWebhook() {
-  const v = window.prompt('请输入 Slack Incoming Webhook URL（留空可清除）', slackWebhookUrl || '');
-  if (v === null) return;
-  slackWebhookUrl = v.trim();
-  if (!slackWebhookUrl) slackAlertEnabled = false;
-  try {
-    if (slackWebhookUrl) localStorage.setItem(SLACK_WEBHOOK_KEY, slackWebhookUrl);
-    else localStorage.removeItem(SLACK_WEBHOOK_KEY);
-    localStorage.setItem(SLACK_ENABLED_KEY, slackAlertEnabled ? '1' : '0');
-  } catch (e) {}
-  refreshSlackBtn();
-}
-function toggleSlackAlert() {
-  if (!slackWebhookUrl) {
-    window.alert('请先点击「Slack 配置」填写 Incoming Webhook URL。');
-    return;
-  }
-  slackAlertEnabled = !slackAlertEnabled;
-  try { localStorage.setItem(SLACK_ENABLED_KEY, slackAlertEnabled ? '1' : '0'); } catch (e) {}
-  refreshSlackBtn();
-}
-function sendSlackAlert(text, force = false) {
-  if ((!slackAlertEnabled && !force) || !slackWebhookUrl) return;
-  fetch(slackWebhookUrl, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ text }),
-  }).catch(() => {});
-}
-function sendSlackTest() {
-  if (!slackWebhookUrl) {
-    window.alert('请先配置 Slack Incoming Webhook URL。');
-    return;
-  }
-  sendSlackAlert(`✅ Stablecoin Monitor Slack 测试消息：${new Date().toLocaleString('zh-CN')}`, true);
-  window.alert('Slack 测试消息已发送（若 webhook 有效，通常几秒内可见）。');
-}
 function refreshTelegramBtn() {
   const btn = document.getElementById('tg-alert-btn');
   if (!btn) return;
@@ -483,32 +424,29 @@ function refreshTelegramBtn() {
 }
 function initTelegramConfig() {
   try {
-    telegramBotToken = localStorage.getItem(TG_BOT_TOKEN_KEY) || '';
-    telegramChatId = localStorage.getItem(TG_CHAT_ID_KEY) || '';
-    telegramEnabled = localStorage.getItem(TG_ENABLED_KEY) === '1' && !!telegramBotToken && !!telegramChatId;
+    telegramBotToken = localStorage.getItem(TG_BOT_TOKEN_KEY) || TG_DEFAULT_BOT_TOKEN;
+    telegramChatId = localStorage.getItem(TG_CHAT_ID_KEY) || TG_DEFAULT_CHAT_ID;
+    const enabledVal = localStorage.getItem(TG_ENABLED_KEY);
+    telegramEnabled = enabledVal === null
+      ? (!!telegramBotToken && !!telegramChatId)
+      : (enabledVal === '1' && !!telegramBotToken && !!telegramChatId);
+    if (telegramBotToken) localStorage.setItem(TG_BOT_TOKEN_KEY, telegramBotToken);
+    if (telegramChatId) localStorage.setItem(TG_CHAT_ID_KEY, telegramChatId);
+    localStorage.setItem(TG_ENABLED_KEY, telegramEnabled ? '1' : '0');
   } catch (e) {
     telegramEnabled = false;
-    telegramBotToken = '';
-    telegramChatId = '';
+    telegramBotToken = TG_DEFAULT_BOT_TOKEN;
+    telegramChatId = TG_DEFAULT_CHAT_ID;
   }
   refreshTelegramBtn();
 }
 function configTelegram() {
-  const token = window.prompt('请输入 Telegram Bot Token（留空清除）', telegramBotToken || '');
-  if (token === null) return;
-  telegramBotToken = token.trim();
-  if (!telegramBotToken) {
-    telegramChatId = '';
-    telegramEnabled = false;
-  } else {
-    const cid = window.prompt('请输入 Telegram Chat ID（群组通常为负数）', telegramChatId || '');
-    if (cid === null) return;
-    telegramChatId = cid.trim();
-    if (!telegramChatId) telegramEnabled = false;
-  }
+  const cid = window.prompt('请输入 Telegram Chat ID（群组通常为负数）', telegramChatId || '');
+  if (cid === null) return;
+  telegramChatId = cid.trim();
+  if (!telegramChatId) telegramEnabled = false;
   try {
     if (telegramBotToken) localStorage.setItem(TG_BOT_TOKEN_KEY, telegramBotToken);
-    else localStorage.removeItem(TG_BOT_TOKEN_KEY);
     if (telegramChatId) localStorage.setItem(TG_CHAT_ID_KEY, telegramChatId);
     else localStorage.removeItem(TG_CHAT_ID_KEY);
     localStorage.setItem(TG_ENABLED_KEY, telegramEnabled ? '1' : '0');
@@ -557,7 +495,7 @@ function speakAlert(text) {
   window.speechSynthesis.speak(u);
 }
 function triggerOffPegAlerts(mainUsdCoins) {
-  if (!voiceAlertEnabled && !slackAlertEnabled && !telegramEnabled) return;
+  if (!voiceAlertEnabled && !telegramEnabled) return;
   mainUsdCoins.forEach(({ coin, price }) => {
     if (price === null) return;
     const dev = Math.abs(price - 1);
@@ -570,9 +508,6 @@ function triggerOffPegAlerts(mainUsdCoins) {
       if (voiceAlertEnabled && canNotify(`voice-l1-${coin.id}`)) {
         speakAlert(`警报，${coin.symbol} 脱锚超过百分之一，当前价格 ${price.toFixed(4)} 美元`);
       }
-      if (slackAlertEnabled && canNotify(`slack-l1-${coin.id}`)) {
-        sendSlackAlert(`⚠️ 脱锚提醒：${coin.symbol} 偏离锚定超过 1%，当前价格 $${price.toFixed(4)}。`);
-      }
       if (telegramEnabled && canNotify(`tg-l1-${coin.id}`)) {
         sendTelegramAlert(`⚠️ 脱锚提醒：${coin.symbol} 偏离锚定超过 1%，当前价格 $${price.toFixed(4)}。`);
       }
@@ -580,9 +515,6 @@ function triggerOffPegAlerts(mainUsdCoins) {
     }
     if (voiceAlertEnabled && canNotify(`voice-l2-${coin.id}`)) {
       speakAlert(`紧急警报，${coin.symbol} 脱锚超过百分之十`);
-    }
-    if (slackAlertEnabled && canNotify(`slack-l2-${coin.id}`)) {
-      sendSlackAlert(`🚨 紧急脱锚：${coin.symbol} 偏离锚定超过 10%，当前价格 $${price.toFixed(4)}，请立即关注。`);
     }
     if (telegramEnabled && canNotify(`tg-l2-${coin.id}`)) {
       sendTelegramAlert(`🚨 紧急脱锚：${coin.symbol} 偏离锚定超过 10%，当前价格 $${price.toFixed(4)}，请立即关注。`);
@@ -930,7 +862,6 @@ async function fetchAll() {
 }
 
 distribute(true);
-initSlackConfig();
 initTelegramConfig();
 fetchAll();
 setInterval(fetchAll, 60000);
