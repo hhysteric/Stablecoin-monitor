@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>稳定币脱锚监控 · 语音警报</title>
+<title>稳定币脱锚监控</title>
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', sans-serif; background: #f9f9f7; color: #1a1a18; padding: 1.5rem; font-size: 14px; }
@@ -13,32 +13,6 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC'
 .header p { font-size: 13px; color: #6b6b68; }
 .alert-banner { background: #FCEBEB; border: 0.5px solid #F7C1C1; border-radius: 8px; padding: 10px 14px; margin-bottom: 1rem; font-size: 13px; color: #A32D2D; display: none; align-items: center; gap: 8px; }
 .alert-banner.visible { display: flex; }
-
-/* Voice Alert Panel */
-.voice-panel { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 12px; padding: 16px; margin-bottom: 1.5rem; color: white; box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3); }
-.voice-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
-.voice-title { font-size: 14px; font-weight: 500; display: flex; align-items: center; gap: 8px; }
-.voice-icon { font-size: 18px; animation: soundwave 1.5s ease-in-out infinite; }
-@keyframes soundwave { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.2); } }
-.voice-toggle { background: rgba(255, 255, 255, 0.2); border: 1px solid rgba(255, 255, 255, 0.3); padding: 6px 14px; border-radius: 20px; cursor: pointer; font-size: 12px; color: white; transition: all 0.2s; }
-.voice-toggle:hover { background: rgba(255, 255, 255, 0.3); }
-.voice-toggle.active { background: white; color: #667eea; border-color: white; }
-.voice-controls { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
-.voice-control { background: rgba(255, 255, 255, 0.15); padding: 10px; border-radius: 8px; }
-.voice-control-label { font-size: 11px; opacity: 0.9; margin-bottom: 6px; }
-.voice-slider { width: 100%; -webkit-appearance: none; appearance: none; height: 4px; background: rgba(255, 255, 255, 0.3); border-radius: 2px; outline: none; }
-.voice-slider::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 14px; height: 14px; background: white; border-radius: 50%; cursor: pointer; }
-.voice-slider::-moz-range-thumb { width: 14px; height: 14px; background: white; border-radius: 50%; cursor: pointer; border: none; }
-.voice-test-btn { width: 100%; background: rgba(255, 255, 255, 0.2); border: 1px solid rgba(255, 255, 255, 0.3); padding: 8px; border-radius: 6px; color: white; cursor: pointer; font-size: 12px; transition: all 0.2s; }
-.voice-test-btn:hover { background: rgba(255, 255, 255, 0.3); }
-.alert-history { background: rgba(0, 0, 0, 0.1); border-radius: 8px; padding: 10px; max-height: 120px; overflow-y: auto; }
-.alert-history-item { font-size: 11px; padding: 4px 0; border-bottom: 1px solid rgba(255, 255, 255, 0.1); display: flex; justify-content: space-between; }
-.alert-history-item:last-child { border-bottom: none; }
-.alert-time { opacity: 0.7; }
-.alert-clear { background: none; border: none; color: white; cursor: pointer; font-size: 11px; text-decoration: underline; opacity: 0.8; padding: 4px 0; }
-.alert-clear:hover { opacity: 1; }
-.voice-status { font-size: 11px; opacity: 0.8; text-align: center; padding-top: 8px; }
-
 .summary-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 1.5rem; }
 .summary-card { background: #f1efe8; border-radius: 8px; padding: 12px 14px; }
 .summary-label { font-size: 11px; color: #6b6b68; margin-bottom: 4px; }
@@ -98,6 +72,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC'
 .reserve-btn { font-size: 11px; margin-top: 8px; padding: 4px 8px; border: 0.5px solid rgba(0,0,0,0.15); border-radius: 5px; background: transparent; color: #6b6b68; cursor: pointer; transition: all 0.15s; width: 100%; }
 .reserve-btn:hover { background: #f9f9f7; }
 .reserve-btn.active { background: #1a1a18; color: #fff; border-color: #1a1a18; }
+/* Reserve panel */
 .reserve-panel { background: #fff; border: 0.5px solid rgba(0,0,0,0.12); border-radius: 12px; padding: 1.25rem; margin-bottom: 1.5rem; display: none; }
 .reserve-panel.visible { display: block; }
 .rp-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; }
@@ -131,49 +106,14 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC'
   .summary-row { grid-template-columns: repeat(2, 1fr); }
   .threshold-info { display: none; }
   body { padding: 1rem; }
-  .voice-controls { grid-template-columns: 1fr; }
 }
 </style>
 </head>
 <body>
 <div class="dashboard">
   <div class="header">
-    <h1>稳定币脱锚监控 · 语音警报</h1>
-    <p>实时监控稳定币价格偏离与储备资产风险，智能语音播报脱锚警报 · 每60秒自动刷新 · 点击卡片查看储备详情</p>
-  </div>
-
-  <!-- Voice Alert Control Panel -->
-  <div class="voice-panel">
-    <div class="voice-header">
-      <div class="voice-title">
-        <span class="voice-icon">🔊</span>
-        <span>智能语音警报系统</span>
-      </div>
-      <button class="voice-toggle" id="voice-toggle" onclick="toggleVoice()">启用语音</button>
-    </div>
-    
-    <div class="voice-controls">
-      <div class="voice-control">
-        <div class="voice-control-label">音量：<span id="volume-value">80</span>%</div>
-        <input type="range" min="0" max="100" value="80" class="voice-slider" id="volume-slider" oninput="updateVolume(this.value)">
-      </div>
-      <div class="voice-control">
-        <div class="voice-control-label">语速：<span id="rate-value">1.0</span>x</div>
-        <input type="range" min="0.5" max="2" step="0.1" value="1.0" class="voice-slider" id="rate-slider" oninput="updateRate(this.value)">
-      </div>
-    </div>
-    
-    <button class="voice-test-btn" onclick="testVoice()">🎵 测试语音播报</button>
-    
-    <div class="alert-history" id="alert-history">
-      <div style="font-size:11px;opacity:0.8;margin-bottom:6px;">警报历史记录：</div>
-      <div id="history-list" style="font-size:11px;opacity:0.7;">暂无警报</div>
-    </div>
-    <button class="alert-clear" onclick="clearHistory()">清除历史</button>
-    
-    <div class="voice-status" id="voice-status">
-      语音系统就绪 · 等待警报触发
-    </div>
+    <h1>稳定币脱锚监控</h1>
+    <p>实时监控稳定币价格偏离其锚定目标的情况，支持美元锚定与法币锚定（KGS）两种模式 · 每60秒自动刷新 · 点击卡片查看储备详情</p>
   </div>
 
   <div id="alert-banner" class="alert-banner">
@@ -188,6 +128,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC'
     <div class="summary-card"><div class="summary-label">脱锚警报</div><div class="summary-val" style="color:#A32D2D" id="alert-count">—</div></div>
   </div>
 
+  <!-- Reserve detail panel (injected here) -->
   <div class="reserve-panel" id="reserve-panel">
     <div class="rp-header">
       <div class="rp-title" id="rp-title">储备资产详情</div>
@@ -208,315 +149,305 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC'
   <hr class="divider">
   <div class="grid" id="main-grid"></div>
 
-  <div id="kgs-rate-bar" class="kgs-bar"><span id="kgs-rate-text"></span></div>
   <div class="section-header">
-    <div class="section-title-text">法币锚定（KGS）</div>
+    <div class="section-title-text">KGS 锚定稳定币</div>
     <div class="threshold-info">
-      <span class="t-item"><span class="t-dot" style="background:#7F77DD"></span>±0.5%内</span>
-      <span class="t-item"><span class="t-dot" style="background:#EF9F27"></span>±0.5~2%</span>
-      <span class="t-item"><span class="t-dot" style="background:#E24B4A"></span>&gt;±2%</span>
+      <span class="t-item"><span class="t-dot" style="background:#7F77DD"></span>锚定吉尔吉斯斯坦索姆（KGS）</span>
     </div>
   </div>
   <hr class="divider">
+  <div id="kgs-rate-bar" class="kgs-bar">
+    <span>💱</span><span id="kgs-rate-text">正在获取 KGS/USD 汇率...</span>
+  </div>
   <div class="grid" id="kgs-grid"></div>
 
-  <div class="section-header" style="margin-top:1.5rem">
-    <div class="section-title-text">低交易量稳定币</div>
-    <div class="threshold-info"><span class="t-item"><span class="t-dot" style="background:#378ADD"></span>24h 成交量 &lt; $5,000</span></div>
+  <div class="section-header">
+    <div class="section-title-text">低交易量稳定币（单日 &lt; $5,000）</div>
   </div>
   <hr class="divider">
-  <div id="low-section"></div>
+  <div id="low-section"><div class="empty-section">加载中...</div></div>
 
   <div class="update-time" id="update-time"></div>
 </div>
-
 <script>
-// ============= Voice Alert System =============
-const voiceSystem = {
-  enabled: false,
-  volume: 0.8,
-  rate: 1.0,
-  alertHistory: [],
-  lastAlerts: new Set(),
-  lastRiskAlerts: new Set(),
-  
-  speak(text, priority = 'normal') {
-    if (!this.enabled) return;
-    if (!('speechSynthesis' in window)) {
-      console.warn('浏览器不支持语音合成');
-      return;
-    }
-    
-    // Cancel any ongoing speech for high priority alerts
-    if (priority === 'high') {
-      window.speechSynthesis.cancel();
-    }
-    
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.volume = this.volume;
-    utterance.rate = this.rate;
-    utterance.lang = 'zh-CN';
-    utterance.pitch = priority === 'high' ? 1.2 : 1.0;
-    
-    window.speechSynthesis.speak(utterance);
-    
-    // Update status
-    document.getElementById('voice-status').textContent = `🔊 正在播报：${text.substring(0, 30)}...`;
-    
-    utterance.onend = () => {
-      document.getElementById('voice-status').textContent = '语音系统就绪 · 等待警报触发';
-    };
-  },
-  
-  addToHistory(type, message) {
-    const timestamp = new Date().toLocaleTimeString('zh-CN');
-    this.alertHistory.unshift({ type, message, timestamp });
-    if (this.alertHistory.length > 10) this.alertHistory.pop();
-    this.updateHistoryDisplay();
-  },
-  
-  updateHistoryDisplay() {
-    const historyList = document.getElementById('history-list');
-    if (this.alertHistory.length === 0) {
-      historyList.innerHTML = '<div style="opacity:0.7;">暂无警报</div>';
-      return;
-    }
-    
-    historyList.innerHTML = this.alertHistory.map(item => {
-      const icon = item.type === 'depeg' ? '⚠️' : item.type === 'risk' ? '🔴' : 'ℹ️';
-      return `<div class="alert-history-item">
-        <span>${icon} ${item.message}</span>
-        <span class="alert-time">${item.timestamp}</span>
-      </div>`;
-    }).join('');
-  },
-  
-  checkDepegAlerts(alerts) {
-    if (alerts.length === 0) {
-      this.lastAlerts.clear();
-      return;
-    }
-    
-    const newAlerts = alerts.filter(symbol => !this.lastAlerts.has(symbol));
-    
-    if (newAlerts.length > 0) {
-      const message = newAlerts.length === 1
-        ? `警报！${newAlerts[0]}稳定币发生脱锚，价格偏差超过1%，请立即关注！`
-        : `警报！检测到${newAlerts.length}个稳定币脱锚：${newAlerts.join('、')}，请立即关注！`;
-      
-      this.speak(message, 'high');
-      this.addToHistory('depeg', `脱锚: ${newAlerts.join('、')}`);
-    }
-    
-    this.lastAlerts = new Set(alerts);
-  },
-  
-  checkReserveRisks(coins) {
-    const highRiskCoins = coins.filter(coin => {
-      const reserve = reserves[coin.id];
-      if (!reserve) return false;
-      
-      // Check for high risk or severe issues
-      return reserve.risk === 'high' || 
-             reserve.mechanism.includes('无准备金') ||
-             reserve.collateral.includes('无实物') ||
-             reserve.ratio.includes('不足');
-    });
-    
-    const newRiskCoins = highRiskCoins.filter(coin => !this.lastRiskAlerts.has(coin.symbol));
-    
-    if (newRiskCoins.length > 0) {
-      newRiskCoins.forEach(coin => {
-        const reserve = reserves[coin.id];
-        const message = `风险警告！${coin.symbol}稳定币检测到储备资产风险：${reserve.riskLabel}，${reserve.note.substring(0, 50)}`;
-        this.speak(message, 'normal');
-        this.addToHistory('risk', `储备风险: ${coin.symbol} - ${reserve.riskLabel}`);
-      });
-    }
-    
-    this.lastRiskAlerts = new Set(highRiskCoins.map(c => c.symbol));
-  }
-};
-
-function toggleVoice() {
-  voiceSystem.enabled = !voiceSystem.enabled;
-  const btn = document.getElementById('voice-toggle');
-  
-  if (voiceSystem.enabled) {
-    btn.textContent = '已启用 ✓';
-    btn.classList.add('active');
-    voiceSystem.speak('语音警报系统已启用，开始监控稳定币脱锚情况');
-    document.getElementById('voice-status').textContent = '✅ 语音系统已启用 · 实时监控中';
-  } else {
-    btn.textContent = '启用语音';
-    btn.classList.remove('active');
-    window.speechSynthesis.cancel();
-    document.getElementById('voice-status').textContent = '❌ 语音系统已禁用';
-  }
-}
-
-function updateVolume(value) {
-  voiceSystem.volume = value / 100;
-  document.getElementById('volume-value').textContent = value;
-}
-
-function updateRate(value) {
-  voiceSystem.rate = parseFloat(value);
-  document.getElementById('rate-value').textContent = value;
-}
-
-function testVoice() {
-  const testMessages = [
-    '语音系统测试：这是一条测试播报',
-    '警报！USDT稳定币发生脱锚，价格偏差超过1%',
-    '风险警告！检测到储备资产异常'
-  ];
-  const randomMessage = testMessages[Math.floor(Math.random() * testMessages.length)];
-  voiceSystem.speak(randomMessage, 'normal');
-}
-
-function clearHistory() {
-  voiceSystem.alertHistory = [];
-  voiceSystem.updateHistoryDisplay();
-}
-
-// ============= Original Code (with voice integration) =============
 const COINS = [
-  { id:'tether', symbol:'USDT', peg:'usd', pegTarget:1 },
-  { id:'usd-coin', symbol:'USDC', peg:'usd', pegTarget:1 },
-  { id:'dai', symbol:'DAI', peg:'usd', pegTarget:1 },
-  { id:'first-digital-usd', symbol:'FDUSD', peg:'usd', pegTarget:1 },
-  { id:'true-usd', symbol:'TUSD', peg:'usd', pegTarget:1 },
-  { id:'paypal-usd', symbol:'PYUSD', peg:'usd', pegTarget:1 },
-  { id:'ethena-usde', symbol:'USDe', peg:'usd', pegTarget:1 },
-  { id:'frax', symbol:'FRAX', peg:'usd', pegTarget:1 },
-  { id:'usdj', symbol:'USDJ', peg:'usd', pegTarget:1 },
-  { id:'gemini-dollar', symbol:'GUSD', peg:'usd', pegTarget:1 },
-  { id:'stasis-eurs', symbol:'EURS', peg:'usd', pegTarget:1.06 },
-  { id:'liquity-usd', symbol:'LUSD', peg:'usd', pegTarget:1 },
-  { id:'alchemix-usd', symbol:'alUSD', peg:'usd', pegTarget:1 },
-  { id:'origin-dollar', symbol:'OUSD', peg:'usd', pegTarget:1 },
-  { id:'tribe', symbol:'FEI', peg:'usd', pegTarget:1 },
-  { id:'celo-dollar', symbol:'cUSD', peg:'usd', pegTarget:1 },
-  { id:'usdd', symbol:'USDD', peg:'usd', pegTarget:1 },
-  { id:'terra-usd', symbol:'USTC', peg:'usd', pegTarget:1 },
-  { id:'som', symbol:'SOM', peg:'kgs', pegTarget:1 }
+  { id: 'usdd',                  symbol: 'USDD',    name: 'USDD (TRON DAO)',       peg: 'usd' },
+  { id: 'united-stables',        symbol: 'U',       name: 'United Stables',         peg: 'usd' },
+  { id: 'usd1-wlfi',             symbol: 'USD1',    name: 'USD1 (WLFI)',            peg: 'usd' },
+  { id: 'ethena-usde',           symbol: 'USDe',    name: 'Ethena USDe',            peg: 'usd' },
+  { id: 'first-digital-usd',     symbol: 'FDUSD',   name: 'First Digital USD',      peg: 'usd' },
+  { id: 'just-stablecoin',       symbol: 'USDJ',    name: 'USDJ (JustStable)',      peg: 'usd' },
+  { id: 'true-usd',              symbol: 'TUSD',    name: 'TrueUSD',                peg: 'usd' },
+  { id: 'husd',                  symbol: 'HUSD',    name: 'HUSD',                   peg: 'usd' },
+  { id: 'wrapped-staked-usdt',   symbol: 'WSTUSDT', name: 'Wrapped Staked USDT',    peg: 'usd' },
+  { id: 'stusdt-staked-usdt',    symbol: 'stUSDT',  name: 'stUSDT (JustLend)',      peg: 'usd' },
+  { id: 'kyrgyz-som-stablecoin', symbol: 'KGST',    name: 'Kyrgyz Som Stablecoin',  peg: 'kgs' },
 ];
 
-const reserves = {
-  'tether': { mechanism:'部分准备金', collateral:'现金、商业票据、国债', ratio:'~100%', audit:'BDO Italia', attestation:'季度', attestTag:'amber', dashboard:'https://tether.to/en/transparency/', risk:'medium', riskLabel:'中风险', note:'全球最大稳定币，储备资产透明度相对较高，但部分资产流动性较弱，历史上曾被质疑准备金不足。' },
-  'usd-coin': { mechanism:'完全准备金', collateral:'现金及等价物、短期美国国债', ratio:'100%', audit:'Grant Thornton LLP', attestation:'每月', attestTag:'green', dashboard:'https://www.circle.com/en/usdc', risk:'low', riskLabel:'低风险', note:'由Circle与Coinbase联合发行，受到严格监管，准备金透明度高，每月发布审计报告。' },
-  'dai': { mechanism:'超额抵押', collateral:'ETH、USDC等加密资产', ratio:'150%+', audit:'链上透明', attestation:'实时', attestTag:'green', dashboard:'https://daistats.com/', risk:'low', riskLabel:'低风险', note:'去中心化稳定币，完全链上透明，但依赖抵押品价值，极端市场波动可能导致清算风险。' },
-  'first-digital-usd': { mechanism:'完全准备金', collateral:'现金、短期国债', ratio:'100%+', audit:'Independent auditor', attestation:'月度', attestTag:'green', dashboard:'https://www.firstdigitallabs.com/transparency', risk:'low', riskLabel:'低风险', note:'亚洲合规稳定币，香港信托公司监管，储备资产独立托管，透明度较高。' },
-  'true-usd': { mechanism:'完全准备金', collateral:'美元存款', ratio:'100%', audit:'Armanino LLP', attestation:'每日', attestTag:'green', dashboard:'https://www.trueusd.com/', risk:'low', riskLabel:'低风险', note:'由Archblock（原TrustToken）发行，储备资产托管于独立银行，每日发布证明。' },
-  'paypal-usd': { mechanism:'完全准备金', collateral:'美元存款、短期国债', ratio:'100%', audit:'PayPal内部', attestation:'月度', attestTag:'amber', dashboard:'https://www.paypal.com/pyusd', risk:'medium', riskLabel:'中风险', note:'PayPal发行，受美国监管，但审计报告不完全公开，透明度有待提升。' },
-  'ethena-usde': { mechanism:'Delta对冲', collateral:'质押ETH + 永续合约对冲', ratio:'动态调整', audit:'Pashman Stein', attestation:'季度', attestTag:'amber', dashboard:'https://app.ethena.fi/', risk:'high', riskLabel:'高风险', note:'创新的合成美元，通过Delta中性策略维持锚定，但依赖衍生品市场，极端行情可能失效。' },
-  'frax': { mechanism:'部分算法+部分抵押', collateral:'USDC、FXS治理代币', ratio:'动态（当前~100%）', audit:'链上透明', attestation:'实时', attestTag:'green', dashboard:'https://facts.frax.finance/', risk:'medium', riskLabel:'中风险', note:'部分算法稳定币，已从算法为主转向完全抵押，但仍保留一定算法机制。' },
-  'usdj': { mechanism:'超额抵押', collateral:'TRX及波场生态资产', ratio:'120%+', audit:'链上透明', attestation:'实时', attestTag:'green', dashboard:'https://just.tronscan.org/', risk:'medium', riskLabel:'中风险', note:'波场生态稳定币，超额抵押TRX，但抵押品集中在单一公链，风险较高。' },
-  'gemini-dollar': { mechanism:'完全准备金', collateral:'美元银行存款', ratio:'100%', audit:'BPM LLP', attestation:'每月', attestTag:'green', dashboard:'https://www.gemini.com/dollar', risk:'low', riskLabel:'低风险', note:'Gemini交易所发行，受纽约金融服务局监管，储备资产独立托管。' },
-  'stasis-eurs': { mechanism:'完全准备金', collateral:'欧元银行存款', ratio:'100%', audit:'KPMG', attestation:'季度', attestTag:'amber', dashboard:'https://eurs.stasis.net/', risk:'medium', riskLabel:'中风险', note:'欧元稳定币，受欧盟监管，但流动性和使用场景有限。' },
-  'liquity-usd': { mechanism:'超额抵押', collateral:'ETH', ratio:'110%+', audit:'链上透明', attestation:'实时', attestTag:'green', dashboard:'https://www.liquity.org/', risk:'medium', riskLabel:'中风险', note:'去中心化稳定币，最低抵押率110%，无治理代币，但依赖ETH价格。' },
-  'alchemix-usd': { mechanism:'超额抵押+收益偿还', collateral:'DAI、USDC等稳定币', ratio:'200%+', audit:'链上透明', attestation:'实时', attestTag:'green', dashboard:'https://alchemix.fi/', risk:'medium', riskLabel:'中风险', note:'创新的自偿还贷款协议，但机制复杂，依赖DeFi收益率。' },
-  'origin-dollar': { mechanism:'完全抵押', collateral:'USDT、USDC、DAI', ratio:'100%+', audit:'链上透明', attestation:'实时', attestTag:'green', dashboard:'https://www.ousd.com/', risk:'medium', riskLabel:'中风险', note:'自动收益稳定币，抵押其他稳定币并通过DeFi策略产生收益。' },
-  'tribe': { mechanism:'协议控制价值', collateral:'ETH、稳定币', ratio:'动态', audit:'链上透明', attestation:'实时', attestTag:'amber', dashboard:'https://fei.money/', risk:'high', riskLabel:'高风险', note:'项目已停止运营，历史上曾发生脱锚事件，仅供研究参考。' },
-  'celo-dollar': { mechanism:'超额抵押', collateral:'CELO、BTC、ETH等', ratio:'200%+', audit:'链上透明', attestation:'实时', attestTag:'green', dashboard:'https://reserve.mento.org/', risk:'medium', riskLabel:'中风险', note:'Celo生态稳定币，多元抵押品，但依赖CELO代币价值。' },
-  'usdd': { mechanism:'超额抵押+算法', collateral:'TRX、BTC、USDT', ratio:'130%+', audit:'链上可查', attestation:'实时', attestTag:'amber', dashboard:'https://usdd.io/', risk:'high', riskLabel:'高风险', note:'Tron生态算法稳定币，抵押率波动大，历史上曾短暂脱锚。' },
-  'terra-usd': { mechanism:'算法稳定币（已崩溃）', collateral:'无实物抵押（LUNA代币）', ratio:'不适用', audit:'无', attestation:'无', attestTag:'red', dashboard:'', risk:'critical', riskLabel:'极高风险', note:'2022年5月发生死亡螺旋崩盘，造成数百亿美元损失，现仅为残留代币，不建议持有。' },
-  'som': { mechanism:'完全准备金', collateral:'吉尔吉斯斯坦索姆（KGS）法币', ratio:'100%', audit:'Local bank', attestation:'季度', attestTag:'amber', dashboard:'', risk:'high', riskLabel:'高风险', note:'锚定吉尔吉斯斯坦本币，流动性极低，使用场景有限，监管框架不明确。' }
+const RESERVE_INFO = {
+  'usdd': {
+    mechanism: '超额抵押 CDP 模型',
+    collateral: 'TRX、sTRX、USDT',
+    ratio: '>120%（链上可查）',
+    audit: 'ChainSecurity（TRON/ETH/BNB）\nCertiK AA 级（87.5/100）',
+    attestation: '季度报告 + 链上实时',
+    attestTag: 'green',
+    risk: 'warn', riskLabel: '中等风险',
+    note: 'TRX 约占抵押品 40%，存在生态集中风险。曾为算法稳定币（2022 年 USDD 1.0 脱锚），2025 年 1 月升级为超额抵押的 USDD 2.0。智能合约已去除管理员权限，不可被中心化方冻结。',
+    dashboard: 'https://usdd.io/treasury',
+  },
+  'united-stables': {
+    mechanism: '法币抵押（美元储备）',
+    collateral: '美元及等价物',
+    ratio: '1:1',
+    audit: '公开信息有限',
+    attestation: '未知',
+    attestTag: 'gray',
+    risk: 'neutral', riskLabel: '信息有限',
+    note: '项目规模较小，公开储备透明度信息不足，建议关注官方渠道动态。',
+    dashboard: null,
+  },
+  'usd1-wlfi': {
+    mechanism: '法币抵押（国债 + 现金）',
+    collateral: '短期美国国债、美元现金及等价物',
+    ratio: '1:1',
+    audit: 'BitGo 机构托管，第三方审计进行中',
+    attestation: '月度报告（规划中）',
+    attestTag: 'amber',
+    risk: 'ok', riskLabel: '低风险',
+    note: '由 World Liberty Financial（WLFI，与特朗普家族关联）发行，BitGo 机构级托管。2025 年上线后快速增长中。政治关联性可能带来监管不确定性。',
+    dashboard: 'https://wlfi.com',
+  },
+  'ethena-usde': {
+    mechanism: '合成美元（Delta 中性对冲）',
+    collateral: 'BTC/ETH 现货多头 + 永续合约空头',
+    ratio: '>100%（另有储备基金缓冲）',
+    audit: 'Chaos Labs PoR 每周链上证明\nLlamaRisk / Harris & Trotter / Chainlink',
+    attestation: '每周第三方 PoR',
+    attestTag: 'green',
+    risk: 'ok', riskLabel: '低风险',
+    note: '合成模型依赖永续资金费率为正；资产通过 Off-Exchange Settlement 方案托管于链下（非交易所账户）。2025 年 2 月 Bybit 被黑时短暂脱锚至 $0.988，随后快速恢复。',
+    dashboard: 'https://app.ethena.fi/dashboards/transparency',
+  },
+  'first-digital-usd': {
+    mechanism: '法币抵押（美国国债）',
+    collateral: '美国国债（T-Bills）、隔夜定存',
+    ratio: '1:1（超额覆盖）',
+    audit: 'Prescient Assurance 月度认证\nPeckShield & Quantstamp 合约审计',
+    attestation: '月度独立认证',
+    attestTag: 'green',
+    risk: 'warn', riskLabel: '中等风险',
+    note: '2025 年 4 月 Justin Sun 指控托管方 FDT 资不抵债，FDUSD 一度跌至 $0.87。FDT 否认并提起诉讼，表示 FDUSD 储备由美国国债全额支撑，但与 TUSD 的储备纠纷仍在司法程序中。',
+    dashboard: 'https://www.firstdigitallabs.com/transparency',
+  },
+  'just-stablecoin': {
+    mechanism: '超额抵押 CDP（类 MakerDAO）',
+    collateral: 'TRX 及其他 TRON 生态资产',
+    ratio: '>150%（最低抵押率）',
+    audit: 'JustStable 合约审计（TRON）',
+    attestation: '链上实时',
+    attestTag: 'blue',
+    risk: 'warn', riskLabel: '中等风险',
+    note: '抵押品以 TRX 为主，面临 TRON 生态单一风险；流动性较低，在 TRX 大幅下跌时存在清算风险。',
+    dashboard: 'https://just.network',
+  },
+  'true-usd': {
+    mechanism: '法币抵押（美元储备）',
+    collateral: '美元、短期国债',
+    ratio: '1:1',
+    audit: 'The Network Firm 实时认证（历史）',
+    attestation: '存疑，认证中断',
+    attestTag: 'red',
+    risk: 'bad', riskLabel: '高风险',
+    note: '2025 年起深陷储备纠纷：迪拜法院冻结约 $4.56 亿相关资金，指控储备被挪用至流动性差的投资。Justin Sun 否认直接参与，但链上数据显示其地址与 TUSD 铸造/销毁相关。实时认证状态存疑。',
+    dashboard: 'https://real-time-attest.trustexplorer.io/trueusd',
+  },
+  'husd': {
+    mechanism: '法币抵押（美元储备）',
+    collateral: '美元（历史）',
+    ratio: '1:1（历史）',
+    audit: '无近期公开审计',
+    attestation: '无',
+    attestTag: 'red',
+    risk: 'bad', riskLabel: '高风险',
+    note: '已基本停止正常运营；2022 年曾严重脱锚；目前流动性极低，近乎无法使用。高风险，不建议持有。',
+    dashboard: null,
+  },
+  'wrapped-staked-usdt': {
+    mechanism: '包装质押 USDT（收益型）',
+    collateral: '质押 USDT（底层为 USDT 储备）',
+    ratio: '≥1:1（含质押收益）',
+    audit: '依赖 Tether 储备审计',
+    attestation: '依赖 Tether 季度报告',
+    attestTag: 'gray',
+    risk: 'ok', riskLabel: '低风险',
+    note: '价格通常略高于 $1.00（含质押收益积累），属正常现象。主要风险来自 USDT 本身及所在协议的智能合约安全性。',
+    dashboard: null,
+  },
+  'stusdt-staked-usdt': {
+    mechanism: '质押 USDT（JustLend 收益型）',
+    collateral: 'USDT（TRON 生态）',
+    ratio: '≥1:1（含质押收益）',
+    audit: 'TRON JustLend 合约审计',
+    attestation: '链上实时',
+    attestTag: 'blue',
+    risk: 'ok', riskLabel: '低风险',
+    note: '价格通常略大于 $1.00（含收益积累）；风险主要来自 TRON 生态和 USDT 本身。',
+    dashboard: 'https://justlend.org',
+  },
+  'kyrgyz-som-stablecoin': {
+    mechanism: '法币抵押（吉尔吉斯索姆）',
+    collateral: 'KGS（吉尔吉斯斯坦索姆）及等价物',
+    ratio: '1:1（对应 KGS）',
+    audit: '公开信息极少',
+    attestation: '未知',
+    attestTag: 'gray',
+    risk: 'neutral', riskLabel: '信息有限',
+    note: '锚定目标为吉尔吉斯斯坦索姆（KGS）而非美元。KGS 相对稳定（约 87 KGS/USD），法币汇率波动较小。因此监控脱锚需使用 KGS/USD 实时汇率作为参考价格，而非固定 $1.0。',
+    dashboard: null,
+  },
 };
 
-const coinData = {}, kgsPerUsd = 87.45;
+const LOW_VOL_THRESHOLD = 5000;
+const WARN_THRESHOLD    = 0.003;
+const ALERT_THRESHOLD   = 0.01;
+
+let coinData   = {};
+let kgsPerUsd  = null;
 let selectedId = null;
 
 function getStatus(coin, price, vol) {
-  if (price == null || vol == null) return 'loading';
-  if (vol < 5000) return 'low';
-  const pegPrice = coin.peg === 'kgs' ? (coin.pegTarget / kgsPerUsd) : coin.pegTarget;
-  const dev = Math.abs((price - pegPrice) / pegPrice) * 100;
+  if (price === null) return 'loading';
   if (coin.peg === 'kgs') {
-    if (dev <= 0.5) return 'kgst-ok';
-    if (dev <= 2) return 'kgst-warn';
-    return 'kgst-alert';
+    if (kgsPerUsd === null) return 'loading';
+    const pegUsd = 1 / kgsPerUsd;
+    const dev = Math.abs(price - pegUsd) / pegUsd;
+    if (dev > ALERT_THRESHOLD) return 'kgst-alert';
+    if (dev > WARN_THRESHOLD)  return 'kgst-warn';
+    return 'kgst-ok';
   }
-  if (dev <= 0.3) return 'ok';
-  if (dev <= 1) return 'warn';
-  return 'alert';
+  if (vol !== null && vol < LOW_VOL_THRESHOLD) return 'low';
+  const dev = Math.abs(price - 1);
+  if (dev > ALERT_THRESHOLD) return 'alert';
+  if (dev > WARN_THRESHOLD)  return 'warn';
+  return 'ok';
 }
 
-function fmt4(n) { return n.toFixed(4); }
-function fmtVol(n) {
-  if (n == null) return '—';
-  if (n < 1e3) return `$${n.toFixed(0)}`;
-  if (n < 1e6) return `$${(n/1e3).toFixed(1)}K`;
-  if (n < 1e9) return `$${(n/1e6).toFixed(1)}M`;
-  return `$${(n/1e9).toFixed(2)}B`;
+function devClass(s) {
+  if (s === 'loading') return '';
+  if (s === 'low') return 'ok';
+  return s;
+}
+
+function fmt4(n)    { return n === null ? '—' : n.toFixed(4); }
+function fmtVol(n)  {
+  if (!n && n !== 0) return '—';
+  if (n >= 1e9) return '$' + (n/1e9).toFixed(2) + 'B';
+  if (n >= 1e6) return '$' + (n/1e6).toFixed(2) + 'M';
+  if (n >= 1e3) return '$' + (n/1e3).toFixed(2) + 'K';
+  return '$' + n.toFixed(2);
+}
+
+function fmtDev(coin, price) {
+  if (price === null) return '';
+  if (coin.peg === 'kgs' && kgsPerUsd) {
+    const pegUsd = 1 / kgsPerUsd;
+    const pct = (price - pegUsd) / pegUsd * 100;
+    return (pct >= 0 ? '+' : '') + pct.toFixed(3) + '%（vs KGS 锚定）';
+  }
+  const pct = (price - 1) * 100;
+  return (pct >= 0 ? '+' : '') + pct.toFixed(3) + '%';
+}
+
+function pegBarPct(coin, price) {
+  if (price === null) return 50;
+  let dev;
+  if (coin.peg === 'kgs' && kgsPerUsd) {
+    const pegUsd = 1 / kgsPerUsd;
+    dev = Math.abs(price - pegUsd) / pegUsd;
+  } else {
+    dev = Math.abs(price - 1);
+  }
+  return Math.max(0, Math.min(100, 100 - dev * 5000));
 }
 
 function renderCard(coin, container) {
-  const d = coinData[coin.id] || {};
-  const price = d.price != null ? d.price : null;
-  const vol = d.vol != null ? d.vol : null;
+  const d      = coinData[coin.id] || {};
+  const price  = d.price != null ? d.price : null;
+  const vol    = d.vol   != null ? d.vol   : null;
+  const mc     = d.mc    != null ? d.mc    : null;
   const status = getStatus(coin, price, vol);
-  const pegPrice = coin.peg === 'kgs' ? (coin.pegTarget / kgsPerUsd) : coin.pegTarget;
-  const dev = price != null ? ((price - pegPrice) / pegPrice) * 100 : null;
-  const devSign = dev != null ? (dev >= 0 ? '+' : '') : '';
-  const devText = dev != null ? `${devSign}${dev.toFixed(3)}%` : '—';
-  const priceStr = price != null ? `$${fmt4(price)}` : '—';
-  const barWidth = dev != null ? Math.min(Math.abs(dev) * 30, 100) : 0;
+  const dc     = devClass(status);
+  const isSelected = selectedId === coin.id;
+  const ri     = RESERVE_INFO[coin.id];
 
-  const pegLabel = coin.peg === 'kgs' ? `KGS锚定 (≈$${(coin.pegTarget/kgsPerUsd).toFixed(5)})` : 'USD锚定';
-  const pegTargetStr = coin.peg === 'kgs' ? `$${(pegPrice).toFixed(5)}` : `$${pegPrice.toFixed(4)}`;
-
-  let existing = container.querySelector(`[data-coin-id="${coin.id}"]`);
-  if (!existing) {
-    existing = document.createElement('div');
-    existing.className = `coin-card status-${status}`;
-    existing.setAttribute('data-coin-id', coin.id);
-    existing.onclick = () => showReserve(coin.id);
-    container.appendChild(existing);
-  } else {
-    existing.className = `coin-card status-${status}`;
-    if (selectedId === coin.id) existing.classList.add('selected');
+  let card = document.getElementById('card-' + coin.id);
+  if (!card) {
+    card = document.createElement('div');
+    card.id = 'card-' + coin.id;
+    container.appendChild(card);
   }
 
-  const statusClass = status.includes('kgst') ? status.replace('kgst-', '') : status;
-  existing.innerHTML = `
+  card.className = 'coin-card status-' + status + (isSelected ? ' selected' : '');
+
+  const pegLabel = coin.peg === 'kgs'
+    ? (kgsPerUsd ? `锚定 KGS（1 KGS ≈ $${(1/kgsPerUsd).toFixed(5)}）` : '锚定 KGS（汇率加载中）')
+    : '锚定 $1.0000 USD';
+
+  const priceHtml = price === null
+    ? `<div class="skeleton" style="height:28px;width:80px;margin-bottom:5px"></div>`
+    : `<div class="coin-price ${dc}">$${fmt4(price)}</div>`;
+
+  const devHtml = price === null
+    ? `<div class="skeleton" style="height:13px;width:90px;margin-bottom:8px"></div>`
+    : `<div class="coin-deviation ${dc}">${fmtDev(coin, price)}</div>`;
+
+  card.innerHTML = `
     <div class="coin-header">
       <div class="coin-symbol">${coin.symbol}</div>
       <div class="coin-status-dot dot-${status}"></div>
     </div>
     <div class="coin-peg-label">${pegLabel}</div>
-    <div class="coin-price ${statusClass}">${priceStr}</div>
-    <div class="coin-deviation ${statusClass}">${devText}</div>
-    <div class="peg-bar-wrap"><div class="peg-bar ${statusClass}" style="width:${barWidth}%"></div></div>
-    <div class="coin-meta">目标价格：${pegTargetStr}<br>24h 成交量：${fmtVol(vol)}</div>
+    ${priceHtml}${devHtml}
+    <div class="peg-bar-wrap"><div class="peg-bar ${dc}" style="width:${price===null?50:pegBarPct(coin,price)}%"></div></div>
+    <div class="coin-meta">
+      <div class="coin-vol">成交量 ${fmtVol(vol)}</div>
+      ${mc ? `<div>市值 ${fmtVol(mc)}</div>` : ''}
+      <div style="margin-top:3px;font-size:10px;color:#b0b0ab">${coin.name}</div>
+    </div>
+    ${ri ? `<button class="reserve-btn${isSelected?' active':''}" onclick="event.stopPropagation();toggleReserve('${coin.id}')">${isSelected?'▲ 收起':'📋 储备详情'}</button>` : ''}
   `;
+
+  card.onclick = () => {
+    if (ri) toggleReserve(coin.id);
+    else window.open('https://www.coingecko.com/en/coins/' + coin.id, '_blank');
+  };
+}
+
+function toggleReserve(id) {
+  if (selectedId === id) { closeReserve(); return; }
+  selectedId = id;
+  distribute(false);
+  showReserve(id);
 }
 
 function closeReserve() {
   selectedId = null;
   document.getElementById('reserve-panel').className = 'reserve-panel';
-  document.querySelectorAll('.coin-card').forEach(c => c.classList.remove('selected'));
+  distribute(false);
 }
 
 function showReserve(id) {
-  selectedId = id;
   const coin = COINS.find(c => c.id === id);
-  const ri = reserves[id];
-  const d = coinData[id] || {};
-  const price = d.price, vol = d.vol, mc = d.mc;
+  const ri   = RESERVE_INFO[id];
+  if (!coin || !ri) return;
+  const d     = coinData[id] || {};
+  const price = d.price != null ? d.price : null;
+  const vol   = d.vol   != null ? d.vol   : null;
+  const mc    = d.mc    != null ? d.mc    : null;
 
-  document.querySelectorAll('.coin-card').forEach(c => c.classList.remove('selected'));
-  document.querySelector(`[data-coin-id="${id}"]`)?.classList.add('selected');
-
-  if (!ri) {
-    document.getElementById('rp-content').innerHTML = `<p style="color:#9b9b98;">暂无该币种的储备资产数据</p>`;
-    document.getElementById('reserve-panel').className = 'reserve-panel visible';
-    return;
-  }
-
-  const riskTagClass = { low:'tag-green', medium:'tag-amber', high:'tag-red', critical:'tag-red' }[ri.risk] || 'tag-gray';
-  const attTagClass = { green:'tag-green', amber:'tag-amber', red:'tag-red', blue:'tag-blue', gray:'tag-gray' }[ri.attestTag] || 'tag-gray';
+  const riskTagClass = { ok:'tag-green', warn:'tag-amber', bad:'tag-red', neutral:'tag-gray' }[ri.risk] || 'tag-gray';
+  const attTagClass  = { green:'tag-green', amber:'tag-amber', red:'tag-red', blue:'tag-blue', gray:'tag-gray' }[ri.attestTag] || 'tag-gray';
 
   let mktRows = `
     <div class="rp-row"><span class="rp-key">当前价格</span><span class="rp-val">${price ? '$'+fmt4(price) : '—'}</span></div>
@@ -561,9 +492,9 @@ function showReserve(id) {
 }
 
 function distribute(rebuild) {
-  const mainGrid = document.getElementById('main-grid');
-  const kgsGrid = document.getElementById('kgs-grid');
-  const lowSec = document.getElementById('low-section');
+  const mainGrid  = document.getElementById('main-grid');
+  const kgsGrid   = document.getElementById('kgs-grid');
+  const lowSec    = document.getElementById('low-section');
 
   if (rebuild) { mainGrid.innerHTML = ''; kgsGrid.innerHTML = ''; }
 
@@ -571,9 +502,9 @@ function distribute(rebuild) {
   const alerts = [], lowCoins = [];
 
   COINS.forEach(coin => {
-    const d = coinData[coin.id] || {};
-    const price = d.price != null ? d.price : null;
-    const vol = d.vol != null ? d.vol : null;
+    const d      = coinData[coin.id] || {};
+    const price  = d.price != null ? d.price : null;
+    const vol    = d.vol   != null ? d.vol   : null;
     const status = getStatus(coin, price, vol);
 
     if (coin.peg === 'kgs') { renderCard(coin, kgsGrid); return; }
@@ -598,24 +529,17 @@ function distribute(rebuild) {
   }
 
   document.getElementById('total-count').textContent = COINS.length;
-  document.getElementById('ok-count').textContent = ok || '—';
-  document.getElementById('warn-count').textContent = warn || '—';
+  document.getElementById('ok-count').textContent    = ok    || '—';
+  document.getElementById('warn-count').textContent  = warn  || '—';
   document.getElementById('alert-count').textContent = alert || '—';
 
   const banner = document.getElementById('alert-banner');
   if (alerts.length > 0) {
     banner.className = 'alert-banner visible';
     document.getElementById('alert-text').textContent = `脱锚警报：${alerts.join('、')} 价格偏差超过 ±1%，请及时关注！`;
-    
-    // Trigger voice alert for depeg
-    voiceSystem.checkDepegAlerts(alerts);
   } else {
     banner.className = 'alert-banner';
-    voiceSystem.checkDepegAlerts([]);
   }
-  
-  // Check reserve risks
-  voiceSystem.checkReserveRisks(COINS);
 }
 
 async function fetchKgsRate() {
