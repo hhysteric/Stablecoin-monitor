@@ -150,6 +150,15 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC'
   <div class="grid" id="main-grid"></div>
 
   <div class="section-header">
+    <div class="section-title-text">收益型稳定币（单独监控）</div>
+    <div class="threshold-info">
+      <span class="t-item"><span class="t-dot" style="background:#1D9E75"></span>收益累积时价格略高于 $1 属正常</span>
+    </div>
+  </div>
+  <hr class="divider">
+  <div class="grid" id="yield-grid"></div>
+
+  <div class="section-header">
     <div class="section-title-text">KGS 锚定稳定币</div>
     <div class="threshold-info">
       <span class="t-item"><span class="t-dot" style="background:#7F77DD"></span>锚定吉尔吉斯斯坦索姆（KGS）</span>
@@ -493,10 +502,12 @@ function showReserve(id) {
 
 function distribute(rebuild) {
   const mainGrid  = document.getElementById('main-grid');
+  const yieldGrid = document.getElementById('yield-grid');
   const kgsGrid   = document.getElementById('kgs-grid');
   const lowSec    = document.getElementById('low-section');
+  const yieldCoinIds = new Set(['wrapped-staked-usdt', 'stusdt-staked-usdt']);
 
-  if (rebuild) { mainGrid.innerHTML = ''; kgsGrid.innerHTML = ''; }
+  if (rebuild) { mainGrid.innerHTML = ''; yieldGrid.innerHTML = ''; kgsGrid.innerHTML = ''; }
 
   let ok=0, warn=0, alert=0;
   const alerts = [], lowCoins = [];
@@ -508,6 +519,15 @@ function distribute(rebuild) {
     const status = getStatus(coin, price, vol);
 
     if (coin.peg === 'kgs') { renderCard(coin, kgsGrid); return; }
+    if (yieldCoinIds.has(coin.id)) {
+      renderCard(coin, yieldGrid);
+      if (price !== null) {
+        if (status === 'ok') ok++;
+        else if (status === 'warn') warn++;
+        else if (status === 'alert') { alert++; alerts.push(coin.symbol); }
+      }
+      return;
+    }
     if (status === 'low') { lowCoins.push(coin); return; }
 
     renderCard(coin, mainGrid);
