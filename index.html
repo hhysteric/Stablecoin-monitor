@@ -149,6 +149,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC'
     <button class="btn" id="voice-alert-btn" onclick="toggleVoiceAlert()">🔈 语音警报：关</button>
     <button class="btn" id="tg-alert-btn" onclick="toggleTelegramAlert()">📩 TG：关</button>
     <button class="btn" id="tg-config-btn" onclick="configTelegram()">TG 配置</button>
+    <button class="btn" id="tg-detect-btn" onclick="detectTelegramChatId()">自动获取Chat ID</button>
     <button class="btn" id="tg-test-btn" onclick="sendTelegramTest()">TG 测试</button>
     <button class="btn" id="refresh-btn" onclick="fetchAll()">刷新</button>
   </div>
@@ -337,7 +338,6 @@ const TG_BOT_TOKEN_KEY  = 'stablecoin_monitor_tg_bot_token';
 const TG_CHAT_ID_KEY    = 'stablecoin_monitor_tg_chat_id';
 const TG_ENABLED_KEY    = 'stablecoin_monitor_tg_enabled';
 const TG_DEFAULT_BOT_TOKEN = '8733255882:AAHXFgElrHmTGK_ZfzZ2pOQMyP1uSgIwgLA';
-const TG_DEFAULT_CHAT_ID = '8733255882';
 let telegramEnabled = false;
 let telegramBotToken = '';
 let telegramChatId = '';
@@ -425,7 +425,7 @@ function refreshTelegramBtn() {
 function initTelegramConfig() {
   try {
     telegramBotToken = localStorage.getItem(TG_BOT_TOKEN_KEY) || TG_DEFAULT_BOT_TOKEN;
-    telegramChatId = localStorage.getItem(TG_CHAT_ID_KEY) || TG_DEFAULT_CHAT_ID;
+    telegramChatId = localStorage.getItem(TG_CHAT_ID_KEY) || '';
     const enabledVal = localStorage.getItem(TG_ENABLED_KEY);
     telegramEnabled = enabledVal === null
       ? (!!telegramBotToken && !!telegramChatId)
@@ -436,7 +436,7 @@ function initTelegramConfig() {
   } catch (e) {
     telegramEnabled = false;
     telegramBotToken = TG_DEFAULT_BOT_TOKEN;
-    telegramChatId = TG_DEFAULT_CHAT_ID;
+    telegramChatId = '';
   }
   refreshTelegramBtn();
 }
@@ -462,21 +462,63 @@ function toggleTelegramAlert() {
   try { localStorage.setItem(TG_ENABLED_KEY, telegramEnabled ? '1' : '0'); } catch (e) {}
   refreshTelegramBtn();
 }
-function sendTelegramAlert(text, force = false) {
+async function detectTelegramChatId() {
+  if (!telegramBotToken) {
+    window.alert('缺少 Telegram Bot Token，无法自动获取 Chat ID。');
+    return;
+  }
+  window.alert('请先在 Telegram 里给 @Stable_M0nitor_Bot 发送任意消息，然后点击确认继续。');
+  try {
+    const resp = await fetch(`https://api.telegram.org/bot${telegramBotToken}/getUpdates`);
+    const data = await resp.json();
+    if (!resp.ok || !data.ok) throw new Error(data.description || ('HTTP ' + resp.status));
+    const list = data.result || [];
+    if (!list.length) {
+      window.alert('未读取到会话。请先给机器人发送消息（或把机器人拉入群并发送消息）后重试。');
+      return;
+    }
+    const latest = list[list.length - 1];
+    const cid = latest?.message?.chat?.id || latest?.channel_post?.chat?.id || latest?.my_chat_member?.chat?.id;
+    if (!cid) {
+      window.alert('已获取更新，但未解析出 Chat ID，请稍后重试。');
+      return;
+    }
+    telegramChatId = String(cid);
+    localStorage.setItem(TG_CHAT_ID_KEY, telegramChatId);
+    if (!localStorage.getItem(TG_ENABLED_KEY)) {
+      telegramEnabled = true;
+      localStorage.setItem(TG_ENABLED_KEY, '1');
+    }
+    refreshTelegramBtn();
+    window.alert(`已自动写入 Chat ID：${telegramChatId}`);
+  } catch (e) {
+    window.alert('自动获取 Chat ID 失败：' + e.message);
+  }
+}
+async function sendTelegramAlert(text, force = false) {
   if ((!telegramEnabled && !force) || !telegramBotToken || !telegramChatId) return;
-  fetch(`https://api.telegram.org/bot${telegramBotToken}/sendMessage`, {
+  const resp = await fetch(`https://api.telegram.org/bot${telegramBotToken}/sendMessage`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ chat_id: telegramChatId, text }),
-  }).catch(() => {});
+  });
+  const data = await resp.json().catch(() => ({}));
+  if (!resp.ok || !data.ok) {
+    throw new Error(data.description || ('HTTP ' + resp.status));
+  }
+  return data;
 }
-function sendTelegramTest() {
+async function sendTelegramTest() {
   if (!telegramBotToken || !telegramChatId) {
     window.alert('请先配置 Telegram Bot Token 与 Chat ID。');
     return;
   }
-  sendTelegramAlert(`✅ Stablecoin Monitor TG 测试消息：${new Date().toLocaleString('zh-CN')}`, true);
-  window.alert('Telegram 测试消息已发送（若 Bot/Chat 配置正确，通常几秒内可见）。');
+  try {
+    await sendTelegramAlert(`✅ Stablecoin Monitor TG 测试消息：${new Date().toLocaleString('zh-CN')}`, true);
+    window.alert('Telegram 测试消息发送成功。');
+  } catch (e) {
+    window.alert('Telegram 测试失败：' + e.message);
+  }
 }
 function canNotify(key) {
   const now = Date.now();
@@ -509,7 +551,7 @@ function triggerOffPegAlerts(mainUsdCoins) {
         speakAlert(`警报，${coin.symbol} 脱锚超过百分之一，当前价格 ${price.toFixed(4)} 美元`);
       }
       if (telegramEnabled && canNotify(`tg-l1-${coin.id}`)) {
-        sendTelegramAlert(`⚠️ 脱锚提醒：${coin.symbol} 偏离锚定超过 1%，当前价格 $${price.toFixed(4)}。`);
+        sendTelegramAlert(`⚠️ 脱锚提醒：${coin.symbol} 偏离锚定超过 1%，当前价格 $${price.toFixed(4)}。`).catch(() => {});
       }
       return;
     }
@@ -517,7 +559,7 @@ function triggerOffPegAlerts(mainUsdCoins) {
       speakAlert(`紧急警报，${coin.symbol} 脱锚超过百分之十`);
     }
     if (telegramEnabled && canNotify(`tg-l2-${coin.id}`)) {
-      sendTelegramAlert(`🚨 紧急脱锚：${coin.symbol} 偏离锚定超过 10%，当前价格 $${price.toFixed(4)}，请立即关注。`);
+      sendTelegramAlert(`🚨 紧急脱锚：${coin.symbol} 偏离锚定超过 10%，当前价格 $${price.toFixed(4)}，请立即关注。`).catch(() => {});
     }
     if (voiceAlertEnabled && canNotify(`popup-l2-${coin.id}`)) {
       window.alert(`⚠️ 紧急脱锚弹窗\n${coin.symbol} 当前价格 $${price.toFixed(4)}，偏离锚定超过 10%，请立即关注。`);
