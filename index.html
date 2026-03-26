@@ -338,6 +338,7 @@ const TG_BOT_TOKEN_KEY  = 'stablecoin_monitor_tg_bot_token';
 const TG_CHAT_ID_KEY    = 'stablecoin_monitor_tg_chat_id';
 const TG_ENABLED_KEY    = 'stablecoin_monitor_tg_enabled';
 const TG_DEFAULT_BOT_TOKEN = '8733255882:AAHXFgElrHmTGK_ZfzZ2pOQMyP1uSgIwgLA';
+const TG_DEFAULT_CHAT_ID = '-1003729489013';
 let telegramEnabled = false;
 let telegramBotToken = '';
 let telegramChatId = '';
@@ -425,7 +426,7 @@ function refreshTelegramBtn() {
 function initTelegramConfig() {
   try {
     telegramBotToken = localStorage.getItem(TG_BOT_TOKEN_KEY) || TG_DEFAULT_BOT_TOKEN;
-    telegramChatId = localStorage.getItem(TG_CHAT_ID_KEY) || '';
+    telegramChatId = localStorage.getItem(TG_CHAT_ID_KEY) || TG_DEFAULT_CHAT_ID;
     const enabledVal = localStorage.getItem(TG_ENABLED_KEY);
     telegramEnabled = enabledVal === null
       ? (!!telegramBotToken && !!telegramChatId)
@@ -436,7 +437,7 @@ function initTelegramConfig() {
   } catch (e) {
     telegramEnabled = false;
     telegramBotToken = TG_DEFAULT_BOT_TOKEN;
-    telegramChatId = '';
+    telegramChatId = TG_DEFAULT_CHAT_ID;
   }
   refreshTelegramBtn();
 }
