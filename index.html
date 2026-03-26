@@ -23,9 +23,10 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC'
 .t-item { display: flex; align-items: center; gap: 4px; }
 .t-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
 .divider { border: none; border-top: 0.5px solid rgba(0,0,0,0.1); margin: 0 0 10px 0; }
-.btn { font-size: 12px; padding: 4px 12px; border: 0.5px solid rgba(0,0,0,0.2); border-radius: 6px; background: transparent; color: #6b6b68; cursor: pointer; transition: all 0.15s; white-space: nowrap; }
+.btn { font-size: 12px; padding: 4px 12px; border: 0.5px solid rgba(0,0,0,0.2); border-radius: 6px; background: transparent; color: #6b6b68; cursor: pointer; transition: all 0.15s; white-space: nowrap; text-decoration: none; display: inline-block; }
 .btn:hover { background: #f1efe8; }
 .btn.loading { opacity: 0.5; pointer-events: none; }
+.btn.active { background: #1a1a18; color: #fff; border-color: #1a1a18; }
 .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; margin-bottom: 1.5rem; }
 .coin-card { background: #fff; border: 0.5px solid rgba(0,0,0,0.1); border-radius: 12px; padding: 14px; position: relative; transition: border-color 0.2s, box-shadow 0.2s; cursor: pointer; }
 .coin-card:hover { border-color: rgba(0,0,0,0.25); }
@@ -143,11 +144,25 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC'
       <span class="t-item"><span class="t-dot" style="background:#1D9E75"></span>±0.3%内</span>
       <span class="t-item"><span class="t-dot" style="background:#EF9F27"></span>±0.3~1%</span>
       <span class="t-item"><span class="t-dot" style="background:#E24B4A"></span>&gt;±1%</span>
+      <span class="t-item"><span class="t-dot" style="background:#A32D2D"></span>&gt;±10%弹窗</span>
     </div>
+    <button class="btn" id="voice-alert-btn" onclick="toggleVoiceAlert()">🔈 语音警报：关</button>
+    <button class="btn" id="tg-alert-btn" onclick="toggleTelegramAlert()">📩 TG：关</button>
+    <button class="btn" id="tg-test-btn" onclick="sendTelegramTest()">TG 测试</button>
+    <a class="btn" id="tg-channel-link" href="https://t.me/StableCoinM0nitor" target="_blank" rel="noopener noreferrer">TG 通知频道</a>
     <button class="btn" id="refresh-btn" onclick="fetchAll()">刷新</button>
   </div>
   <hr class="divider">
   <div class="grid" id="main-grid"></div>
+
+  <div class="section-header">
+    <div class="section-title-text">收益型稳定币（单独监控）</div>
+    <div class="threshold-info">
+      <span class="t-item"><span class="t-dot" style="background:#1D9E75"></span>收益累积时价格略高于 $1 属正常</span>
+    </div>
+  </div>
+  <hr class="divider">
+  <div class="grid" id="yield-grid"></div>
 
   <div class="section-header">
     <div class="section-title-text">KGS 锚定稳定币</div>
@@ -180,7 +195,7 @@ const COINS = [
   { id: 'true-usd',              symbol: 'TUSD',    name: 'TrueUSD',                peg: 'usd' },
   { id: 'husd',                  symbol: 'HUSD',    name: 'HUSD',                   peg: 'usd' },
   { id: 'wrapped-staked-usdt',   symbol: 'WSTUSDT', name: 'Wrapped Staked USDT',    peg: 'usd' },
-  { id: 'stusdt-staked-usdt',    symbol: 'stUSDT',  name: 'stUSDT (JustLend)',      peg: 'usd' },
+  { id: 'stusdt-staked-usdt',    symbol: 'stUSDT',  name: 'stUSDT (JustLend)',      peg: 'usd', cgId: 'staked-usdt' },
   { id: 'kyrgyz-som-stablecoin', symbol: 'KGST',    name: 'Kyrgyz Som Stablecoin',  peg: 'kgs' },
 ];
 
@@ -315,6 +330,26 @@ const ALERT_THRESHOLD   = 0.01;
 let coinData   = {};
 let kgsPerUsd  = null;
 let selectedId = null;
+let trendData  = {};
+let voiceAlertEnabled = false;
+let offPegAlertLevel  = {};
+const TG_BOT_TOKEN_KEY  = 'stablecoin_monitor_tg_bot_token';
+const TG_CHAT_ID_KEY    = 'stablecoin_monitor_tg_chat_id';
+const TG_ENABLED_KEY    = 'stablecoin_monitor_tg_enabled';
+const TG_DEFAULT_BOT_TOKEN = '8733255882:AAGjQZJIRhbB--QqXyJvqwMA5OwK4W-NdTU';
+const TG_DEFAULT_CHAT_ID = '-1003729489013';
+let telegramEnabled = false;
+let telegramBotToken = '';
+let telegramChatId = '';
+const ALERT_COOLDOWN_MS = 10 * 60 * 1000;
+let lastNotifyAt = {};
+
+function getCoinGeckoId(coinOrId) {
+  const coin = typeof coinOrId === 'string'
+    ? COINS.find(c => c.id === coinOrId)
+    : coinOrId;
+  return coin?.cgId || coin?.id || coinOrId;
+}
 
 function getStatus(coin, price, vol) {
   if (price === null) return 'loading';
@@ -346,6 +381,144 @@ function fmtVol(n)  {
   if (n >= 1e6) return '$' + (n/1e6).toFixed(2) + 'M';
   if (n >= 1e3) return '$' + (n/1e3).toFixed(2) + 'K';
   return '$' + n.toFixed(2);
+}
+function fmtPct(n) {
+  if (n === null || !Number.isFinite(n)) return '—';
+  const s = (n >= 0 ? '+' : '') + n.toFixed(2) + '%';
+  const c = n > 0 ? '#A32D2D' : (n < 0 ? '#1D9E75' : '#6b6b68');
+  return `<span style="color:${c}">${s}</span>`;
+}
+function pctChange(curr, prev) {
+  if (curr === null || prev === null || !Number.isFinite(curr) || !Number.isFinite(prev) || prev === 0) return null;
+  return (curr - prev) / prev * 100;
+}
+function closestPoint(points, targetTs) {
+  if (!Array.isArray(points) || points.length === 0) return null;
+  let best = points[0], bestDiff = Math.abs(points[0][0] - targetTs);
+  for (let i = 1; i < points.length; i++) {
+    const p = points[i];
+    const d = Math.abs(p[0] - targetTs);
+    if (d < bestDiff) { best = p; bestDiff = d; }
+  }
+  return best;
+}
+function avg(nums) {
+  if (!nums.length) return null;
+  return nums.reduce((a, b) => a + b, 0) / nums.length;
+}
+function toggleVoiceAlert() {
+  voiceAlertEnabled = !voiceAlertEnabled;
+  const btn = document.getElementById('voice-alert-btn');
+  btn.textContent = voiceAlertEnabled ? '🔊 语音警报：开' : '🔈 语音警报：关';
+  btn.className = voiceAlertEnabled ? 'btn active' : 'btn';
+  if (voiceAlertEnabled) {
+    offPegAlertLevel = {};
+  }
+}
+function refreshTelegramBtn() {
+  const btn = document.getElementById('tg-alert-btn');
+  if (!btn) return;
+  const ok = telegramEnabled && !!telegramBotToken && !!telegramChatId;
+  btn.textContent = ok ? '📩 TG：开' : '📩 TG：关';
+  btn.className = ok ? 'btn active' : 'btn';
+}
+function initTelegramConfig() {
+  try {
+    telegramBotToken = TG_DEFAULT_BOT_TOKEN;
+    telegramChatId = localStorage.getItem(TG_CHAT_ID_KEY) || TG_DEFAULT_CHAT_ID;
+    const enabledVal = localStorage.getItem(TG_ENABLED_KEY);
+    telegramEnabled = enabledVal === null
+      ? (!!telegramBotToken && !!telegramChatId)
+      : (enabledVal === '1' && !!telegramBotToken && !!telegramChatId);
+    localStorage.setItem(TG_BOT_TOKEN_KEY, telegramBotToken);
+    if (telegramChatId) localStorage.setItem(TG_CHAT_ID_KEY, telegramChatId);
+    localStorage.setItem(TG_ENABLED_KEY, telegramEnabled ? '1' : '0');
+  } catch (e) {
+    telegramEnabled = false;
+    telegramBotToken = TG_DEFAULT_BOT_TOKEN;
+    telegramChatId = TG_DEFAULT_CHAT_ID;
+  }
+  refreshTelegramBtn();
+}
+function toggleTelegramAlert() {
+  if (!telegramBotToken || !telegramChatId) {
+    window.alert('TG 默认配置缺失，请联系管理员检查网页内置 Token/Chat ID。');
+    return;
+  }
+  telegramEnabled = !telegramEnabled;
+  try { localStorage.setItem(TG_ENABLED_KEY, telegramEnabled ? '1' : '0'); } catch (e) {}
+  refreshTelegramBtn();
+}
+async function sendTelegramAlert(text, force = false) {
+  if ((!telegramEnabled && !force) || !telegramBotToken || !telegramChatId) return;
+  const resp = await fetch(`https://api.telegram.org/bot${telegramBotToken}/sendMessage`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ chat_id: telegramChatId, text }),
+  });
+  const data = await resp.json().catch(() => ({}));
+  if (!resp.ok || !data.ok) {
+    throw new Error(data.description || ('HTTP ' + resp.status));
+  }
+  return data;
+}
+async function sendTelegramTest() {
+  if (!telegramBotToken || !telegramChatId) {
+    window.alert('TG 默认配置缺失，请联系管理员检查网页内置 Token/Chat ID。');
+    return;
+  }
+  try {
+    await sendTelegramAlert(`✅ Stablecoin Monitor TG 测试消息：${new Date().toLocaleString('zh-CN')}`, true);
+    window.alert('Telegram 测试消息发送成功。');
+  } catch (e) {
+    window.alert('Telegram 测试失败：' + e.message);
+  }
+}
+function canNotify(key) {
+  const now = Date.now();
+  const prev = lastNotifyAt[key] || 0;
+  if (now - prev < ALERT_COOLDOWN_MS) return false;
+  lastNotifyAt[key] = now;
+  return true;
+}
+function speakAlert(text) {
+  if (!voiceAlertEnabled) return;
+  if (!window.speechSynthesis) return;
+  const u = new SpeechSynthesisUtterance(text);
+  u.lang = 'zh-CN';
+  u.rate = 1;
+  window.speechSynthesis.cancel();
+  window.speechSynthesis.speak(u);
+}
+function triggerOffPegAlerts(mainUsdCoins) {
+  if (!voiceAlertEnabled && !telegramEnabled) return;
+  mainUsdCoins.forEach(({ coin, price }) => {
+    if (price === null) return;
+    const dev = Math.abs(price - 1);
+    const level = dev >= 0.10 ? 2 : (dev >= 0.01 ? 1 : 0);
+    const prev = offPegAlertLevel[coin.id] || 0;
+    offPegAlertLevel[coin.id] = level;
+
+    if (level <= prev || level === 0) return;
+    if (level === 1) {
+      if (voiceAlertEnabled && canNotify(`voice-l1-${coin.id}`)) {
+        speakAlert(`警报，${coin.symbol} 脱锚超过百分之一，当前价格 ${price.toFixed(4)} 美元`);
+      }
+      if (telegramEnabled && canNotify(`tg-l1-${coin.id}`)) {
+        sendTelegramAlert(`⚠️ 脱锚提醒：${coin.symbol} 偏离锚定超过 1%，当前价格 $${price.toFixed(4)}。`).catch(() => {});
+      }
+      return;
+    }
+    if (voiceAlertEnabled && canNotify(`voice-l2-${coin.id}`)) {
+      speakAlert(`紧急警报，${coin.symbol} 脱锚超过百分之十`);
+    }
+    if (telegramEnabled && canNotify(`tg-l2-${coin.id}`)) {
+      sendTelegramAlert(`🚨 紧急脱锚：${coin.symbol} 偏离锚定超过 10%，当前价格 $${price.toFixed(4)}，请立即关注。`).catch(() => {});
+    }
+    if (voiceAlertEnabled && canNotify(`popup-l2-${coin.id}`)) {
+      window.alert(`⚠️ 紧急脱锚弹窗\n${coin.symbol} 当前价格 $${price.toFixed(4)}，偏离锚定超过 10%，请立即关注。`);
+    }
+  });
 }
 
 function fmtDev(coin, price) {
@@ -420,7 +593,7 @@ function renderCard(coin, container) {
 
   card.onclick = () => {
     if (ri) toggleReserve(coin.id);
-    else window.open('https://www.coingecko.com/en/coins/' + coin.id, '_blank');
+    else window.open('https://www.coingecko.com/en/coins/' + getCoinGeckoId(coin), '_blank');
   };
 }
 
@@ -437,6 +610,68 @@ function closeReserve() {
   distribute(false);
 }
 
+async function fetchTrendData(id) {
+  if (trendData[id]) return trendData[id];
+  const cgId = getCoinGeckoId(id);
+  try {
+    const u = `https://api.coingecko.com/api/v3/coins/${cgId}/market_chart?vs_currency=usd&days=30&interval=daily`;
+    const r = await fetch(u);
+    if (!r.ok) throw new Error('market_chart ' + r.status);
+    const j = await r.json();
+    const prices = j.prices || [];
+    const vols   = j.total_volumes || [];
+    const mcs    = j.market_caps || [];
+    if (!prices.length || !vols.length || !mcs.length) throw new Error('empty trend');
+
+    const latestVol = vols[vols.length - 1][1];
+    const latestMc  = mcs[mcs.length - 1][1];
+    const latestP   = prices[prices.length - 1][1];
+
+    const now = Date.now();
+    const p7V  = closestPoint(vols, now - 7 * 24 * 3600 * 1000);
+    const p30V = closestPoint(vols, now - 30 * 24 * 3600 * 1000);
+    const p7M  = closestPoint(mcs, now - 7 * 24 * 3600 * 1000);
+    const p30M = closestPoint(mcs, now - 30 * 24 * 3600 * 1000);
+    const p7P  = closestPoint(prices, now - 7 * 24 * 3600 * 1000);
+    const p30P = closestPoint(prices, now - 30 * 24 * 3600 * 1000);
+
+    const supNow = (latestMc > 0 && latestP > 0) ? latestMc / latestP : null;
+    const sup7   = (p7M && p7P && p7M[1] > 0 && p7P[1] > 0) ? p7M[1] / p7P[1] : null;
+    const sup30  = (p30M && p30P && p30M[1] > 0 && p30P[1] > 0) ? p30M[1] / p30P[1] : null;
+
+    const prev7 = vols.slice(Math.max(0, vols.length - 8), Math.max(0, vols.length - 1)).map(v => v[1]).filter(v => Number.isFinite(v));
+    const avg7 = avg(prev7);
+
+    trendData[id] = {
+      vol7: pctChange(latestVol, p7V ? p7V[1] : null),
+      vol30: pctChange(latestVol, p30V ? p30V[1] : null),
+      mc7: pctChange(latestMc, p7M ? p7M[1] : null),
+      mc30: pctChange(latestMc, p30M ? p30M[1] : null),
+      supply7: pctChange(supNow, sup7),
+      supply30: pctChange(supNow, sup30),
+      volSpike: (avg7 && avg7 > 0) ? latestVol / avg7 : null,
+    };
+    return trendData[id];
+  } catch (e) {
+    trendData[id] = { error: true };
+    return trendData[id];
+  }
+}
+
+function trendPair(v7, v30) {
+  return `7d ${fmtPct(v7)} / 30d ${fmtPct(v30)}`;
+}
+
+function buildAbnormalHint(t) {
+  if (!t || t.error) return '趋势数据加载中或暂不可用。';
+  const notes = [];
+  if (t.volSpike !== null && t.volSpike >= 3) notes.push(`最新日成交量约为近7日均值的 ${t.volSpike.toFixed(2)}x，存在巨额交易迹象`);
+  if (t.supply7 !== null && t.supply7 >= 5) notes.push(`估算流通量 7d 增加 ${t.supply7.toFixed(2)}%，可能出现较大增发`);
+  if (t.supply7 !== null && t.supply7 <= -5) notes.push(`估算流通量 7d 减少 ${Math.abs(t.supply7).toFixed(2)}%，可能出现较大销毁`);
+  if (notes.length === 0) return '近期未见明显“巨额交易/巨额增发/巨额销毁”信号（仅基于 CoinGecko 时间序列推断）。';
+  return notes.join('；') + '。';
+}
+
 function showReserve(id) {
   const coin = COINS.find(c => c.id === id);
   const ri   = RESERVE_INFO[id];
@@ -449,10 +684,19 @@ function showReserve(id) {
   const riskTagClass = { ok:'tag-green', warn:'tag-amber', bad:'tag-red', neutral:'tag-gray' }[ri.risk] || 'tag-gray';
   const attTagClass  = { green:'tag-green', amber:'tag-amber', red:'tag-red', blue:'tag-blue', gray:'tag-gray' }[ri.attestTag] || 'tag-gray';
 
+  const trend = trendData[id];
+  const volSpikeText = trend && trend.volSpike !== null && Number.isFinite(trend.volSpike)
+    ? `${trend.volSpike.toFixed(2)}x`
+    : '—';
+
   let mktRows = `
     <div class="rp-row"><span class="rp-key">当前价格</span><span class="rp-val">${price ? '$'+fmt4(price) : '—'}</span></div>
     <div class="rp-row"><span class="rp-key">24h 成交量</span><span class="rp-val">${fmtVol(vol)}</span></div>
     <div class="rp-row"><span class="rp-key">市值</span><span class="rp-val">${fmtVol(mc)}</span></div>
+    <div class="rp-row"><span class="rp-key">成交量变化</span><span class="rp-val">${trend ? trendPair(trend.vol7, trend.vol30) : '加载中...'}</span></div>
+    <div class="rp-row"><span class="rp-key">市值变化</span><span class="rp-val">${trend ? trendPair(trend.mc7, trend.mc30) : '加载中...'}</span></div>
+    <div class="rp-row"><span class="rp-key">估算流通量变化</span><span class="rp-val">${trend ? trendPair(trend.supply7, trend.supply30) : '加载中...'}</span></div>
+    <div class="rp-row"><span class="rp-key">交易放大量</span><span class="rp-val">${volSpikeText}<br><small style="font-weight:400;color:#9b9b98">最新日成交量 / 近7日均值</small></span></div>
   `;
   if (coin.peg === 'kgs' && kgsPerUsd) {
     const pegUsd = 1 / kgsPerUsd;
@@ -474,13 +718,15 @@ function showReserve(id) {
         <div class="rp-row"><span class="rp-key">审计方</span><span class="rp-val neutral" style="white-space:pre-line">${ri.audit}</span></div>
         <div class="rp-row"><span class="rp-key">审计周期</span><span class="rp-val"><span class="rp-tag ${attTagClass}">${ri.attestation}</span></span></div>
         <div class="rp-row"><span class="rp-key">风险评级</span><span class="rp-val"><span class="rp-tag ${riskTagClass}">${ri.riskLabel}</span></span></div>
-        <div style="margin-top:10px;">${dashLink}<a class="rp-link" href="https://www.coingecko.com/en/coins/${id}" target="_blank" rel="noopener">📊 CoinGecko 行情 ↗</a></div>
+        <div style="margin-top:10px;">${dashLink}<a class="rp-link" href="https://www.coingecko.com/en/coins/${getCoinGeckoId(id)}" target="_blank" rel="noopener">📊 CoinGecko 行情 ↗</a></div>
       </div>
       <div>
         <div class="rp-section-title">市场数据</div>
         ${mktRows}
         <div class="rp-section-title" style="margin-top:14px;">风险提示</div>
         <p class="rp-note">${ri.note}</p>
+        <div class="rp-section-title" style="margin-top:14px;">异动判断（7d/30d）</div>
+        <p class="rp-note">${buildAbnormalHint(trend)}</p>
       </div>
     </div>
   `;
@@ -489,17 +735,25 @@ function showReserve(id) {
   setTimeout(() => {
     document.getElementById('reserve-panel').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }, 60);
+
+  if (!trend) {
+    fetchTrendData(id).then(() => {
+      if (selectedId === id) showReserve(id);
+    });
+  }
 }
 
 function distribute(rebuild) {
   const mainGrid  = document.getElementById('main-grid');
+  const yieldGrid = document.getElementById('yield-grid');
   const kgsGrid   = document.getElementById('kgs-grid');
   const lowSec    = document.getElementById('low-section');
+  const yieldCoinIds = new Set(['wrapped-staked-usdt', 'stusdt-staked-usdt']);
 
-  if (rebuild) { mainGrid.innerHTML = ''; kgsGrid.innerHTML = ''; }
+  if (rebuild) { mainGrid.innerHTML = ''; yieldGrid.innerHTML = ''; kgsGrid.innerHTML = ''; }
 
   let ok=0, warn=0, alert=0;
-  const alerts = [], lowCoins = [];
+  const alerts = [], lowCoins = [], mainUsdCoins = [];
 
   COINS.forEach(coin => {
     const d      = coinData[coin.id] || {};
@@ -508,9 +762,19 @@ function distribute(rebuild) {
     const status = getStatus(coin, price, vol);
 
     if (coin.peg === 'kgs') { renderCard(coin, kgsGrid); return; }
+    if (yieldCoinIds.has(coin.id)) {
+      renderCard(coin, yieldGrid);
+      if (price !== null) {
+        if (status === 'ok') ok++;
+        else if (status === 'warn') warn++;
+        else if (status === 'alert') { alert++; alerts.push(coin.symbol); }
+      }
+      return;
+    }
     if (status === 'low') { lowCoins.push(coin); return; }
 
     renderCard(coin, mainGrid);
+    mainUsdCoins.push({ coin, price });
     if (price !== null) {
       if (status === 'ok') ok++;
       else if (status === 'warn') warn++;
@@ -540,6 +804,8 @@ function distribute(rebuild) {
   } else {
     banner.className = 'alert-banner';
   }
+
+  triggerOffPegAlerts(mainUsdCoins);
 }
 
 async function fetchKgsRate() {
@@ -567,14 +833,18 @@ async function fetchAll() {
   const btn = document.getElementById('refresh-btn');
   btn.textContent = '加载中...'; btn.classList.add('loading');
 
-  const ids = COINS.map(c => c.id).join(',');
+  const ids = [...new Set(COINS.map(c => getCoinGeckoId(c)))].join(',');
   const url = `https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=${ids}&order=market_cap_desc&per_page=50&page=1&sparkline=false`;
 
   try {
     const [, priceResp] = await Promise.all([fetchKgsRate(), fetch(url)]);
     if (!priceResp.ok) throw new Error('CoinGecko ' + priceResp.status);
     const data = await priceResp.json();
-    data.forEach(item => { coinData[item.id] = { price: item.current_price, vol: item.total_volume, mc: item.market_cap }; });
+    data.forEach(item => {
+      const coin = COINS.find(c => getCoinGeckoId(c) === item.id);
+      if (!coin) return;
+      coinData[coin.id] = { price: item.current_price, vol: item.total_volume, mc: item.market_cap };
+    });
     COINS.forEach(c => { if (!coinData[c.id]) coinData[c.id] = { price: null, vol: null, mc: null }; });
     distribute(true);
     if (selectedId) showReserve(selectedId);
@@ -588,6 +858,7 @@ async function fetchAll() {
 }
 
 distribute(true);
+initTelegramConfig();
 fetchAll();
 setInterval(fetchAll, 60000);
 </script>
