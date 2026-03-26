@@ -26,6 +26,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC'
 .btn { font-size: 12px; padding: 4px 12px; border: 0.5px solid rgba(0,0,0,0.2); border-radius: 6px; background: transparent; color: #6b6b68; cursor: pointer; transition: all 0.15s; white-space: nowrap; }
 .btn:hover { background: #f1efe8; }
 .btn.loading { opacity: 0.5; pointer-events: none; }
+.btn.active { background: #1a1a18; color: #fff; border-color: #1a1a18; }
 .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; margin-bottom: 1.5rem; }
 .coin-card { background: #fff; border: 0.5px solid rgba(0,0,0,0.1); border-radius: 12px; padding: 14px; position: relative; transition: border-color 0.2s, box-shadow 0.2s; cursor: pointer; }
 .coin-card:hover { border-color: rgba(0,0,0,0.25); }
@@ -143,7 +144,9 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC'
       <span class="t-item"><span class="t-dot" style="background:#1D9E75"></span>±0.3%内</span>
       <span class="t-item"><span class="t-dot" style="background:#EF9F27"></span>±0.3~1%</span>
       <span class="t-item"><span class="t-dot" style="background:#E24B4A"></span>&gt;±1%</span>
+      <span class="t-item"><span class="t-dot" style="background:#A32D2D"></span>&gt;±10%弹窗</span>
     </div>
+    <button class="btn" id="voice-alert-btn" onclick="toggleVoiceAlert()">🔈 语音警报：关</button>
     <button class="btn" id="refresh-btn" onclick="fetchAll()">刷新</button>
   </div>
   <hr class="divider">
@@ -325,13 +328,8 @@ let coinData   = {};
 let kgsPerUsd  = null;
 let selectedId = null;
 let trendData  = {};
-
-function getCoinGeckoId(coinOrId) {
-  const coin = typeof coinOrId === 'string'
-    ? COINS.find(c => c.id === coinOrId)
-    : coinOrId;
-  return coin?.cgId || coin?.id || coinOrId;
-}
+let voiceAlertEnabled = false;
+let offPegAlertLevel  = {};
 
 function getCoinGeckoId(coinOrId) {
   const coin = typeof coinOrId === 'string'
@@ -394,6 +392,42 @@ function closestPoint(points, targetTs) {
 function avg(nums) {
   if (!nums.length) return null;
   return nums.reduce((a, b) => a + b, 0) / nums.length;
+}
+function toggleVoiceAlert() {
+  voiceAlertEnabled = !voiceAlertEnabled;
+  const btn = document.getElementById('voice-alert-btn');
+  btn.textContent = voiceAlertEnabled ? '🔊 语音警报：开' : '🔈 语音警报：关';
+  btn.className = voiceAlertEnabled ? 'btn active' : 'btn';
+  if (voiceAlertEnabled) {
+    offPegAlertLevel = {};
+    distribute(false);
+  }
+}
+function speakAlert(text) {
+  if (!voiceAlertEnabled) return;
+  if (!window.speechSynthesis) return;
+  const u = new SpeechSynthesisUtterance(text);
+  u.lang = 'zh-CN';
+  u.rate = 1;
+  window.speechSynthesis.cancel();
+  window.speechSynthesis.speak(u);
+}
+function triggerOffPegAlerts(mainUsdCoins) {
+  mainUsdCoins.forEach(({ coin, price }) => {
+    if (price === null) return;
+    const dev = Math.abs(price - 1);
+    const level = dev >= 0.10 ? 2 : (dev >= 0.01 ? 1 : 0);
+    const prev = offPegAlertLevel[coin.id] || 0;
+    offPegAlertLevel[coin.id] = level;
+
+    if (!voiceAlertEnabled || level <= prev || level === 0) return;
+    if (level === 1) {
+      speakAlert(`警报，${coin.symbol} 脱锚超过百分之一，当前价格 ${price.toFixed(4)} 美元`);
+      return;
+    }
+    speakAlert(`紧急警报，${coin.symbol} 脱锚超过百分之十`);
+    window.alert(`⚠️ 紧急脱锚弹窗\n${coin.symbol} 当前价格 $${price.toFixed(4)}，偏离锚定超过 10%，请立即关注。`);
+  });
 }
 
 function fmtDev(coin, price) {
@@ -628,7 +662,7 @@ function distribute(rebuild) {
   if (rebuild) { mainGrid.innerHTML = ''; yieldGrid.innerHTML = ''; kgsGrid.innerHTML = ''; }
 
   let ok=0, warn=0, alert=0;
-  const alerts = [], lowCoins = [];
+  const alerts = [], lowCoins = [], mainUsdCoins = [];
 
   COINS.forEach(coin => {
     const d      = coinData[coin.id] || {};
@@ -649,6 +683,7 @@ function distribute(rebuild) {
     if (status === 'low') { lowCoins.push(coin); return; }
 
     renderCard(coin, mainGrid);
+    mainUsdCoins.push({ coin, price });
     if (price !== null) {
       if (status === 'ok') ok++;
       else if (status === 'warn') warn++;
@@ -678,6 +713,8 @@ function distribute(rebuild) {
   } else {
     banner.className = 'alert-banner';
   }
+
+  triggerOffPegAlerts(mainUsdCoins);
 }
 
 async function fetchKgsRate() {
