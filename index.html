@@ -6,24 +6,24 @@
 <title>稳定币脱锚监控</title>
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
-body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', sans-serif; background: #f9f9f7; color: #1a1a18; padding: 1.5rem; font-size: 14px; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', sans-serif; background: #f9f9f7; color: #1a1a18; padding: 1.5rem; font-size: 15px; }
 .dashboard { max-width: 1100px; margin: 0 auto; }
 .header { margin-bottom: 1.5rem; }
-.header h1 { font-size: 20px; font-weight: 500; color: #1a1a18; margin-bottom: 4px; }
-.header p { font-size: 13px; color: #6b6b68; }
+.header h1 { font-size: 24px; font-weight: 700; color: #1a1a18; margin-bottom: 6px; letter-spacing: 0.01em; }
+.header p { font-size: 14px; color: #6b6b68; line-height: 1.6; }
 .alert-banner { background: #FCEBEB; border: 0.5px solid #F7C1C1; border-radius: 8px; padding: 10px 14px; margin-bottom: 1rem; font-size: 13px; color: #A32D2D; display: none; align-items: center; gap: 8px; }
 .alert-banner.visible { display: flex; }
 .summary-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 1.5rem; }
-.summary-card { background: #f1efe8; border-radius: 8px; padding: 12px 14px; }
-.summary-label { font-size: 11px; color: #6b6b68; margin-bottom: 4px; }
-.summary-val { font-size: 20px; font-weight: 500; color: #1a1a18; }
+.summary-card { background: #f1efe8; border-radius: 10px; padding: 13px 14px; border: 0.5px solid rgba(0,0,0,0.06); }
+.summary-label { font-size: 12px; color: #6b6b68; margin-bottom: 5px; font-weight: 600; letter-spacing: 0.02em; }
+.summary-val { font-size: 24px; font-weight: 700; color: #1a1a18; }
 .section-header { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; flex-wrap: wrap; }
-.section-title-text { font-size: 12px; font-weight: 500; color: #6b6b68; text-transform: uppercase; letter-spacing: 0.05em; flex: 1; }
+.section-title-text { font-size: 13px; font-weight: 700; color: #5b5b58; text-transform: uppercase; letter-spacing: 0.06em; flex: 1; }
 .threshold-info { font-size: 11px; color: #9b9b98; display: flex; gap: 12px; flex-wrap: wrap; }
 .t-item { display: flex; align-items: center; gap: 4px; }
 .t-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
 .divider { border: none; border-top: 0.5px solid rgba(0,0,0,0.1); margin: 0 0 10px 0; }
-.btn { font-size: 12px; padding: 4px 12px; border: 0.5px solid rgba(0,0,0,0.2); border-radius: 6px; background: transparent; color: #6b6b68; cursor: pointer; transition: all 0.15s; white-space: nowrap; text-decoration: none; display: inline-block; }
+.btn { font-size: 12px; font-weight: 600; padding: 5px 12px; border: 0.5px solid rgba(0,0,0,0.2); border-radius: 7px; background: transparent; color: #6b6b68; cursor: pointer; transition: all 0.15s; white-space: nowrap; text-decoration: none; display: inline-block; }
 .btn:hover { background: #f1efe8; }
 .btn.loading { opacity: 0.5; pointer-events: none; }
 .btn.active { background: #1a1a18; color: #fff; border-color: #1a1a18; }
@@ -41,7 +41,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC'
 .coin-card.status-kgst-warn  { border-left: 3px solid #EF9F27; }
 .coin-card.status-kgst-alert { border-left: 3px solid #E24B4A; }
 .coin-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
-.coin-symbol { font-size: 14px; font-weight: 500; color: #1a1a18; }
+.coin-symbol { font-size: 15px; font-weight: 700; color: #1a1a18; }
 .coin-status-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
 .dot-ok, .dot-kgst-ok { background: #1D9E75; }
 .dot-kgst-ok { background: #7F77DD; }
@@ -51,11 +51,11 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC'
 .dot-loading { background: rgba(0,0,0,0.15); }
 @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
 .coin-peg-label { font-size: 10px; color: #b0b0ab; margin-bottom: 4px; }
-.coin-price { font-size: 22px; font-weight: 500; color: #1a1a18; margin-bottom: 2px; }
+.coin-price { font-size: 25px; font-weight: 700; color: #1a1a18; margin-bottom: 2px; letter-spacing: 0.01em; }
 .coin-price.ok, .coin-price.kgst-ok { color: #1D9E75; }
 .coin-price.warn, .coin-price.kgst-warn { color: #BA7517; }
 .coin-price.alert, .coin-price.kgst-alert { color: #A32D2D; }
-.coin-deviation { font-size: 12px; margin-bottom: 8px; font-weight: 500; }
+.coin-deviation { font-size: 13px; margin-bottom: 8px; font-weight: 700; }
 .coin-deviation.ok, .coin-deviation.kgst-ok { color: #3B6D11; }
 .coin-deviation.warn, .coin-deviation.kgst-warn { color: #854F0B; }
 .coin-deviation.alert, .coin-deviation.kgst-alert { color: #A32D2D; }
